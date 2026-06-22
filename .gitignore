@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+*.user
+.env
+*.DotSettings.user
+[Dd]ebug/
+[Rr]elease/
+TestResults/

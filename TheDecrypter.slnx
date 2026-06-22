@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TheDecrypter.Api/TheDecrypter.Api.csproj" />
+    <Project Path="src/TheDecrypter.Application/TheDecrypter.Application.csproj" />
+    <Project Path="src/TheDecrypter.Cache/TheDecrypter.Cache.csproj" />
+    <Project Path="src/TheDecrypter.Domain/TheDecrypter.Domain.csproj" />
+    <Project Path="src/TheDecrypter.Ef/TheDecrypter.Ef.csproj" />
+    <Project Path="src/TheDecrypter.Http/TheDecrypter.Http.csproj" />
+    <Project Path="src/TheDecrypter.Test/TheDecrypter.Test.csproj" />
+  </Folder>
+</Solution>
