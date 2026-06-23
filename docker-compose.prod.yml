@@ -12,7 +12,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - decrypter-pgdata:/var/lib/postgresql/data
+      # -v2: volume novo força o initdb a re-aplicar POSTGRES_PASSWORD (o volume
+      # anterior nasceu com um placeholder e ignorava a senha). Re-seed é automático.
+      - decrypter-pgdata-v2:/var/lib/postgresql/data
       - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d decrypter"]
@@ -89,5 +91,5 @@ networks:
     external: true
 
 volumes:
-  decrypter-pgdata:
+  decrypter-pgdata-v2:
   decrypter-redisdata:
