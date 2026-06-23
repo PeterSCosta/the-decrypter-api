@@ -12,6 +12,7 @@ public interface ILookupService
     Task<RegistroBrInfo?> RegistroBrAsync(string domain, CancellationToken ct = default);
     Task<ProductInfo?> ProductAsync(string barcode, CancellationToken ct = default);
     Task<PixParticipant?> PixAsync(string ispb, CancellationToken ct = default);
+    Task<IReadOnlyList<PixParticipant>> PixListAsync(CancellationToken ct = default);
     Task<CepInfo?> CepAsync(string cep, CancellationToken ct = default);
     Task<W3wInfo?> W3wAsync(string words, CancellationToken ct = default);
     Task<GeocodeInfo?> GeocodeAsync(string query, CancellationToken ct = default);
@@ -68,17 +69,26 @@ public partial class LookupService(
         return CacheFirst($"produto:{clean}", () => products.GetProductAsync(clean, ct), Week);
     }
 
-    public async Task<PixParticipant?> PixAsync(string ispb, CancellationToken ct = default)
+    private async Task<List<PixParticipant>> GetPixListAsync(CancellationToken ct)
     {
-        if (!Regex.IsMatch(ispb, @"^\d{8}$")) return null;
         var list = await cache.Get<List<PixParticipant>>("pix:list");
         if (list is null)
         {
             list = (await brasil.GetPixParticipantsAsync(ct)).ToList();
             if (list.Count > 0) await cache.Set("pix:list", list, Week, Day);
         }
-        return list.FirstOrDefault(p => p.Ispb == ispb);
+        return list;
     }
+
+    public async Task<PixParticipant?> PixAsync(string ispb, CancellationToken ct = default)
+    {
+        if (!Regex.IsMatch(ispb, @"^\d{8}$")) return null;
+        return (await GetPixListAsync(ct)).FirstOrDefault(p => p.Ispb == ispb);
+    }
+
+    // Lista completa (~900) para o front indexar client-side; cacheada em Redis.
+    public async Task<IReadOnlyList<PixParticipant>> PixListAsync(CancellationToken ct = default)
+        => await GetPixListAsync(ct);
 
     public Task<CepInfo?> CepAsync(string cep, CancellationToken ct = default)
     {

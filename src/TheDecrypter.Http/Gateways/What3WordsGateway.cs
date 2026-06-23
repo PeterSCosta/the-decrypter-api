@@ -13,8 +13,12 @@ public class What3WordsGateway(HttpClient http, IConfiguration config) : IWhat3W
         if (string.IsNullOrWhiteSpace(key)) return null;
 
         var w = words.Trim().TrimStart('/').ToLowerInvariant();
-        using var resp = await http.GetAsync(
-            $"v3/convert-to-coordinates?words={Uri.EscapeDataString(w)}&key={Uri.EscapeDataString(key)}", ct);
+        // Chave no header X-Api-Key (recomendação da doc w3w) em vez de query-string,
+        // que vaza em logs de proxy/CDN.
+        using var req = new HttpRequestMessage(
+            HttpMethod.Get, $"v3/convert-to-coordinates?words={Uri.EscapeDataString(w)}");
+        req.Headers.Add("X-Api-Key", key);
+        using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
         if (!resp.IsSuccessStatusCode) return null;
 
         await using var s = await resp.Content.ReadAsStreamAsync(ct);
