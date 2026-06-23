@@ -39,9 +39,12 @@ CREATE TABLE IF NOT EXISTS street (
   num_lei     integer,
   data_lei    text,           -- dd/mm/aaaa
   localizacao text,
-  ext         integer,
+  ext         double precision,   -- extensão em metros (valores fracionários no dataset)
   larg        double precision
 );
+-- Widening idempotente: tabelas criadas por uma versão anterior do schema tinham
+-- `ext integer`. Rodado pelo sidecar de seed em todo deploy; no-op se já for double.
+ALTER TABLE street ALTER COLUMN ext TYPE double precision;
 CREATE INDEX IF NOT EXISTS ix_street_num_lei ON street (num_lei);
 CREATE INDEX IF NOT EXISTS ix_street_nome_trgm
   ON street USING gin (immutable_unaccent(nome) gin_trgm_ops);

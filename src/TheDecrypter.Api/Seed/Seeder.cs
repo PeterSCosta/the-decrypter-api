@@ -113,8 +113,15 @@ public static class Seeder
     private static string? Str(JsonElement o, string p) =>
         o.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
-    private static int? Int(JsonElement o, string p) =>
-        o.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : null;
+    // Tolerante: aceita Number que não seja Int32 limpo (ex.: 66.65, ou fora do
+    // range) — arredonda em vez de estourar FormatException no GetInt32().
+    private static int? Int(JsonElement o, string p)
+    {
+        if (!o.TryGetProperty(p, out var v) || v.ValueKind != JsonValueKind.Number) return null;
+        if (v.TryGetInt32(out var i)) return i;
+        if (v.TryGetDouble(out var d) && d >= int.MinValue && d <= int.MaxValue) return (int)Math.Round(d);
+        return null;
+    }
 
     private static double? Dbl(JsonElement o, string p) =>
         o.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
@@ -153,7 +160,7 @@ public static class Seeder
                 NumLei = Int(r, "numLei"),
                 DataLei = NullIfEmpty(Str(r, "dataLei")),
                 Localizacao = NullIfEmpty(Str(r, "localizacao")),
-                Ext = Int(r, "ext"),
+                Ext = Dbl(r, "ext"),
                 Larg = Dbl(r, "larg"),
             });
             if (chunk.Count >= 5000)

@@ -10,6 +10,6 @@ public class Street
     public int? NumLei { get; set; }
     public string? DataLei { get; set; }
     public string? Localizacao { get; set; }
-    public int? Ext { get; set; }
+    public double? Ext { get; set; }   // extensão em metros (pode ser fracionária)
     public double? Larg { get; set; }
 }
