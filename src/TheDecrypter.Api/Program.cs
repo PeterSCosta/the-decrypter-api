@@ -85,6 +85,8 @@ if (args.Contains("seed"))
     return 0;
 }
 
+// Outermost: transforma falha transitória de upstream em 503 (não 500).
+app.UseMiddleware<TheDecrypter.Api.Middleware.UpstreamErrorMiddleware>();
 app.UseForwardedHeaders();
 app.UseResponseCompression();
 if (app.Environment.IsDevelopment())
