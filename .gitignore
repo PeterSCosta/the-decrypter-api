@@ -7,3 +7,7 @@ obj/
 [Dd]ebug/
 [Rr]elease/
 TestResults/
+
+# Datasets do front (../the-decrypter/public/data) — populados pelo CI/make sync-data.
+seed-data/*.json
+!seed-data/.gitkeep

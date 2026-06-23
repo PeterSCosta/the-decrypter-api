@@ -1,8 +1,8 @@
 name: Build, Push & Deploy
 
-# A cada push na main: builda a imagem, publica no Docker Hub e SÓ ENTÃO chama o
-# Dokploy pela API (se os secrets existirem; senão, avisa e segue — faça Redeploy
-# manual). Mesmo padrão do the-decrypter (front) e do the-logic-lab.
+# A cada push na main: sincroniza os JSONs do front, builda a imagem (com os
+# datasets embutidos), publica no Docker Hub e SÓ ENTÃO chama o Dokploy pela
+# API (se os secrets existirem; senão, avisa e segue — faça Redeploy manual).
 
 on:
   push:
@@ -12,28 +12,58 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  DATASET_REPO: PeterSCosta/the-decrypter
+  DATASET_REF: main
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout the-decrypter-api
+        uses: actions/checkout@v4
+        with:
+          path: api
+
+      # the-decrypter é PRIVADO → o GITHUB_TOKEN do workflow não tem acesso.
+      # Precisa de um PAT/fine-grained token com "Contents: read" em $DATASET_REPO,
+      # salvo no secret GH_PAT_THE_DECRYPTER (ver DEPLOY.md §2).
+      - name: Checkout the-decrypter (front, fonte dos datasets)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DATASET_REPO }}
+          ref: ${{ env.DATASET_REF }}
+          token: ${{ secrets.GH_PAT_THE_DECRYPTER }}
+          path: the-decrypter
+
+      - name: Sync + validar datasets do front
+        working-directory: api
+        run: |
+          make sync-data FRONT=../the-decrypter
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends jq
+          make validate-data
+          ls -la seed-data/
+
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - id: tag
         run: echo "TAG=$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          context: api
+          file: api/Dockerfile
           push: true
           tags: |
             petercosta/the-decrypter-api:latest
             petercosta/the-decrypter-api:${{ steps.tag.outputs.TAG }}
           cache-from: type=registry,ref=petercosta/the-decrypter-api:buildcache
           cache-to: type=registry,ref=petercosta/the-decrypter-api:buildcache,mode=max
+
       - name: Deploy no Dokploy (se configurado)
         env:
           DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}

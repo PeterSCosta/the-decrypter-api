@@ -67,11 +67,22 @@ var app = builder.Build();
 // Modo seed: `dotnet run -- seed --data <dir>` popula o Postgres e sai.
 if (args.Contains("seed"))
 {
-    var dataDir = GetArgValue(args, "--data") ?? "../the-decrypter/public/data";
+    // Default container-friendly: o Dockerfile copia os JSONs para /app/data.
+    // Dev local que quiser semear contra o PG dev:
+    //   dotnet run -- seed --data ../the-decrypter/public/data
+    var dataDir = GetArgValue(args, "--data") ?? "/app/data";
+    if (!Directory.Exists(dataDir))
+    {
+        Console.Error.WriteLine(
+            $"ERRO: --data aponta para '{dataDir}' que não existe. " +
+            "Em dev, passe --data ../the-decrypter/public/data. " +
+            "Em container, o dataset é embutido em /app/data pelo Dockerfile.");
+        return 1;
+    }
     using var scope = app.Services.CreateScope();
     var log = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Seeder");
     await TheDecrypter.Api.Seed.Seeder.RunAsync(scope.ServiceProvider, dataDir, log);
-    return;
+    return 0;
 }
 
 app.UseForwardedHeaders();
@@ -87,6 +98,7 @@ app.UseOutputCache();
 app.MapControllers();
 
 app.Run();
+return 0;
 
 static string? GetArgValue(string[] arguments, string name)
 {

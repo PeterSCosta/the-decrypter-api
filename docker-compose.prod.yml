@@ -1,8 +1,64 @@
-# Stack de produção (Dokploy). A API entra na rede externa compartilhada
-# (logiclabnetwork) e usa o mesmo Postgres/Redis do the-logic-lab — basta criar o
-# banco `decrypter` lá e apontar as connection strings. As variáveis vêm do painel
-# do Dokploy (Environment).
+# Stack dedicada (Dokploy). Postgres 17 + Redis 7 PRIVADOS ao the-decrypter-api;
+# a API fica também na rede externa `logiclabnetwork` para o Traefik rotear.
+# Schema aplicado via initdb (primeira subida) + reaplicado pelo sidecar de seed
+# em todo deploy (idempotente). Seed roda como serviço one-shot que sai com 0
+# antes da API levantar.
 services:
+  postgres:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: decrypter
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - decrypter-pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d decrypter"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [decrypter-internal]
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--save", "60", "1000"]
+    volumes:
+      - decrypter-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [decrypter-internal]
+
+  # Sidecar one-shot: reaplica schema.sql (idempotente) e roda o seeder. Sai 0.
+  # `service_completed_successfully` na API garante que ninguém é roteado antes.
+  # psql usa variáveis libpq (PGHOST/PGUSER/PGPASSWORD) em vez de URL — assim
+  # senhas com `@:/#?%&` não quebram parse. Seed nunca toca Redis: sem dep daqui.
+  decrypter-api-seed:
+    image: petercosta/the-decrypter-api:latest
+    pull_policy: always
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        psql -v ON_ERROR_STOP=1 -f /app/db/schema.sql
+        dotnet TheDecrypter.Api.dll seed --data /app/data
+    environment:
+      ConnectionStrings__DecrypterDB: "Host=postgres;Port=5432;Database=decrypter;Username=postgres;Password=${POSTGRES_PASSWORD}"
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGDATABASE: decrypter
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [decrypter-internal]
+
   decrypter-api:
     image: petercosta/the-decrypter-api:latest
     pull_policy: always
@@ -10,21 +66,28 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_HTTP_PORTS: "8080"
-      # Ex.: Host=postgres;Port=5432;Database=decrypter;Username=postgres;Password=...
-      ConnectionStrings__DecrypterDB: ${ConnectionStrings__DecrypterDB}
-      # Ex.: redis:6379,password=...
-      ConnectionStrings__Redis: ${ConnectionStrings__Redis}
+      ConnectionStrings__DecrypterDB: "Host=postgres;Port=5432;Database=decrypter;Username=postgres;Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
       AllowedOrigins__0: ${ALLOWED_ORIGIN:-https://arromba.thelogiclab.com.br}
       Gateways__Cnpj__BaseUrl: ${CNPJ_BASE_URL:-https://brasilapi.com.br/api/}
       Gateways__Cnpj__RatePerMinute: ${CNPJ_RATE_PER_MINUTE:-3}
-      # what3words: opcional. Vazio = endpoint /api/what3words desativado (retorna 404).
       Gateways__What3Words__Key: ${W3W_API_KEY:-}
-      # Nominatim exige User-Agent identificável (política de uso).
       Gateways__Nominatim__UserAgent: ${NOMINATIM_USER_AGENT:-TheDecrypter/1.0 (+https://arromba.thelogiclab.com.br)}
-    networks:
-      - logiclabnetwork
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      decrypter-api-seed: { condition: service_completed_successfully }
+    networks: [decrypter-internal, logiclabnetwork]
+    # Labels do Traefik são injetadas pelo painel Domain do Dokploy.
 
 networks:
+  decrypter-internal:
+    driver: bridge
+    internal: true            # bloqueia egress do PG/Redis para a internet
   logiclabnetwork:
     name: logiclabnetwork
     external: true
+
+volumes:
+  decrypter-pgdata:
+  decrypter-redisdata:

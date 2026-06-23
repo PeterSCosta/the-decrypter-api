@@ -56,6 +56,16 @@ CREATE INDEX IF NOT EXISTS ix_municipio_uf ON municipio (uf);
 CREATE INDEX IF NOT EXISTS ix_municipio_nome_trgm
   ON municipio USING gin (immutable_unaccent(nome) gin_trgm_ops);
 
+-- ========== seed_state (controle de seed self-healing) ==========
+-- Usada pelo Seeder para detectar execução anterior incompleta (status='in_progress'
+-- → TRUNCATE + refazer) e pular tabelas já completas (status='complete').
+CREATE TABLE IF NOT EXISTS seed_state (
+  table_name  text PRIMARY KEY,
+  status      text NOT NULL,             -- 'in_progress' | 'complete'
+  rows_loaded integer,
+  finished_at timestamptz
+);
+
 -- ===== Usuários (futuro: acesso + limite por usuário/tenant) =====
 CREATE TABLE IF NOT EXISTS app_user (
   id           uuid PRIMARY KEY,
