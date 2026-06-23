@@ -36,9 +36,9 @@ e (opcional) `DOKPLOY_URL`, `DOKPLOY_API_KEY`, `DOKPLOY_COMPOSE_ID`.
    - `ConnectionStrings__DecrypterDB` = `Host=postgres;Port=5432;Database=decrypter;Username=postgres;Password=…`
    - `ConnectionStrings__Redis` = `redis:6379,password=…`
    - `ALLOWED_ORIGIN` = `https://arromba.thelogiclab.com.br`
-3. **Domains**: `api.arromba.thelogiclab.com.br`, **Container Port = 8080**, HTTPS on.
+3. **Domains**: `apiarromba.thelogiclab.com.br`, **Container Port = 8080**, HTTPS on.
 4. Deploy. Confirme em `…/api/health` → `{"status":"ok"}` e `…/api/cnpj/00000000000191`.
 
 ## 5. Ligar o front
-No the-decrypter, trocar as chamadas diretas (BrasilAPI etc.) por `https://api.arromba…/api/...`
+No the-decrypter, trocar as chamadas diretas (BrasilAPI etc.) por `https://apiarromba…/api/...`
 — aí ganham cache + rate-limit do backend de graça.
