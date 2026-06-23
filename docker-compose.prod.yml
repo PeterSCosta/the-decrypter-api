@@ -1,19 +1,17 @@
-# Stack dedicada (Dokploy). Postgres 17 + Redis 7 PRIVADOS ao the-decrypter-api;
-# a API fica também na rede externa `logiclabnetwork` para o Traefik rotear.
-# Schema aplicado via initdb (primeira subida) + reaplicado pelo sidecar de seed
-# em todo deploy (idempotente). Seed roda como serviço one-shot que sai com 0
-# antes da API levantar.
+# Stack dedicada (Dokploy). Postgres 17 + Redis 7 PRIVADOS ao the-decrypter-api.
+# Os serviços têm nomes ÚNICOS (decrypter-db / decrypter-cache) de propósito: a
+# API fica também na `logiclabnetwork` (p/ o Traefik), onde o the-logic-lab já tem
+# serviços `postgres`/`redis` — nomes genéricos colidiriam e a API resolveria o DNS
+# para o banco errado. Schema via initdb + reaplicado pelo sidecar (idempotente).
 services:
-  postgres:
+  decrypter-db:
     image: postgres:17-alpine
     restart: always
     environment:
       POSTGRES_DB: decrypter
       POSTGRES_USER: postgres
-      # Rede `internal: true`, dados públicos (CEP/ruas/IBGE), e o PG NÃO é
-      # compartilhado com o the-logic-lab → auth por confiança dentro da rede
-      # privada. Elimina toda a classe de bug de senha (28P01 por valor/parse).
-      # Aplicado pelo initdb (pg_hba) → exige volume novo (ver -v3 abaixo).
+      # Auth por confiança na rede interna isolada (internal: true, dados públicos,
+      # PG não compartilhado). O WARNING do trust é esperado e seguro aqui.
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - decrypter-pgdata-v3:/var/lib/postgresql/data
@@ -25,7 +23,7 @@ services:
       retries: 20
     networks: [decrypter-internal]
 
-  redis:
+  decrypter-cache:
     image: redis:7-alpine
     restart: always
     # Sem requirepass: cache de dados públicos numa rede interna isolada.
@@ -41,8 +39,6 @@ services:
 
   # Sidecar one-shot: reaplica schema.sql (idempotente) e roda o seeder. Sai 0.
   # `service_completed_successfully` na API garante que ninguém é roteado antes.
-  # psql usa variáveis libpq (PGHOST/PGUSER/PGPASSWORD) em vez de URL — assim
-  # senhas com `@:/#?%&` não quebram parse. Seed nunca toca Redis: sem dep daqui.
   decrypter-api-seed:
     image: petercosta/the-decrypter-api:latest
     pull_policy: always
@@ -54,13 +50,13 @@ services:
         psql -v ON_ERROR_STOP=1 -f /app/db/schema.sql
         dotnet TheDecrypter.Api.dll seed --data /app/data
     environment:
-      ConnectionStrings__DecrypterDB: "Host=postgres;Port=5432;Database=decrypter;Username=postgres"
-      PGHOST: postgres
+      ConnectionStrings__DecrypterDB: "Host=decrypter-db;Port=5432;Database=decrypter;Username=postgres"
+      PGHOST: decrypter-db
       PGPORT: "5432"
       PGUSER: postgres
       PGDATABASE: decrypter
     depends_on:
-      postgres: { condition: service_healthy }
+      decrypter-db: { condition: service_healthy }
     networks: [decrypter-internal]
 
   decrypter-api:
@@ -70,16 +66,16 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_HTTP_PORTS: "8080"
-      ConnectionStrings__DecrypterDB: "Host=postgres;Port=5432;Database=decrypter;Username=postgres"
-      ConnectionStrings__Redis: "redis:6379"
+      ConnectionStrings__DecrypterDB: "Host=decrypter-db;Port=5432;Database=decrypter;Username=postgres"
+      ConnectionStrings__Redis: "decrypter-cache:6379"
       AllowedOrigins__0: ${ALLOWED_ORIGIN:-https://arromba.thelogiclab.com.br}
       Gateways__Cnpj__BaseUrl: ${CNPJ_BASE_URL:-https://brasilapi.com.br/api/}
       Gateways__Cnpj__RatePerMinute: ${CNPJ_RATE_PER_MINUTE:-3}
       Gateways__What3Words__Key: ${W3W_API_KEY:-}
       Gateways__Nominatim__UserAgent: ${NOMINATIM_USER_AGENT:-TheDecrypter/1.0 (+https://arromba.thelogiclab.com.br)}
     depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
+      decrypter-db: { condition: service_healthy }
+      decrypter-cache: { condition: service_healthy }
       decrypter-api-seed: { condition: service_completed_successfully }
     networks: [decrypter-internal, logiclabnetwork]
     # Labels do Traefik são injetadas pelo painel Domain do Dokploy.
