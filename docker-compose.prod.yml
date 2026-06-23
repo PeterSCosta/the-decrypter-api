@@ -1,0 +1,26 @@
+# Stack de produção (Dokploy). A API entra na rede externa compartilhada
+# (logiclabnetwork) e usa o mesmo Postgres/Redis do the-logic-lab — basta criar o
+# banco `decrypter` lá e apontar as connection strings. As variáveis vêm do painel
+# do Dokploy (Environment).
+services:
+  decrypter-api:
+    image: petercosta/the-decrypter-api:latest
+    pull_policy: always
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      # Ex.: Host=postgres;Port=5432;Database=decrypter;Username=postgres;Password=...
+      ConnectionStrings__DecrypterDB: ${ConnectionStrings__DecrypterDB}
+      # Ex.: redis:6379,password=...
+      ConnectionStrings__Redis: ${ConnectionStrings__Redis}
+      AllowedOrigins__0: ${ALLOWED_ORIGIN:-https://arromba.thelogiclab.com.br}
+      Gateways__Cnpj__BaseUrl: ${CNPJ_BASE_URL:-https://brasilapi.com.br/api/}
+      Gateways__Cnpj__RatePerMinute: ${CNPJ_RATE_PER_MINUTE:-3}
+    networks:
+      - logiclabnetwork
+
+networks:
+  logiclabnetwork:
+    name: logiclabnetwork
+    external: true

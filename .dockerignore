@@ -1,0 +1,10 @@
+**/bin
+**/obj
+.git
+.github
+.vs
+*.user
+docs
+README.md
+docker-compose*.yml
+.env

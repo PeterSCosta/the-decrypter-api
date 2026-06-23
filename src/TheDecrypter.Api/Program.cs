@@ -26,9 +26,25 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 
 var app = builder.Build();
 
+// Modo seed: `dotnet run -- seed --data <dir>` popula o Postgres e sai.
+if (args.Contains("seed"))
+{
+    var dataDir = GetArgValue(args, "--data") ?? "../the-decrypter/public/data";
+    using var scope = app.Services.CreateScope();
+    var log = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Seeder");
+    await TheDecrypter.Api.Seed.Seeder.RunAsync(scope.ServiceProvider, dataDir, log);
+    return;
+}
+
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors();
 app.MapControllers();
 
 app.Run();
+
+static string? GetArgValue(string[] arguments, string name)
+{
+    var i = Array.IndexOf(arguments, name);
+    return i >= 0 && i + 1 < arguments.Length ? arguments[i + 1] : null;
+}
