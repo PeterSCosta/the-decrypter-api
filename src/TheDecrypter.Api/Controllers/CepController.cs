@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using TheDecrypter.Application.Lookups;
 using TheDecrypter.Domain.Repositories;
 
@@ -6,6 +7,7 @@ namespace TheDecrypter.Api.Controllers;
 
 [ApiController]
 [Route("api/cep")]
+[OutputCache(PolicyName = "lookups")]
 public class CepController(ICepRepository repo, ILookupService lookup) : ControllerBase
 {
     /// <summary>Busca CEPs por padrão com curinga (ex.: ?pattern=88xxx500).</summary>

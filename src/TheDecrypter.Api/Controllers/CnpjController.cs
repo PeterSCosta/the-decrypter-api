@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using TheDecrypter.Application.Cnpj;
 
 namespace TheDecrypter.Api.Controllers;
 
 [ApiController]
 [Route("api/cnpj")]
+[OutputCache(PolicyName = "lookups")]
 public class CnpjController(ICnpjService service) : ControllerBase
 {
     /// <summary>CNPJ → empresa (cache-first; provedor externo rate-limited via Polly).</summary>

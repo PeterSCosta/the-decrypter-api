@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using TheDecrypter.Application.Lookups;
 
 namespace TheDecrypter.Api.Controllers;
 
 [ApiController]
 [Route("api")]
+[OutputCache(PolicyName = "lookups")]
 public class LookupsController(ILookupService svc) : ControllerBase
 {
     private async Task<IActionResult> Wrap<T>(Func<Task<T?>> load) where T : class

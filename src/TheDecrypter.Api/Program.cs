@@ -1,5 +1,7 @@
 using System.IO.Compression;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using TheDecrypter.Application;
 using TheDecrypter.Cache;
@@ -26,6 +28,29 @@ builder.Services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Output cache: respostas 200 dos lookups guardadas em memória 10 min (varia por
+// rota/query). Camada acima do cache de dados (Redis): repete sem refazer nada.
+builder.Services.AddOutputCache(o =>
+    o.AddPolicy("lookups", b => b.Expire(TimeSpan.FromMinutes(10))));
+
+// Rate-limit por IP (protege a NOSSA API; separado do limite por-upstream do Polly).
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1) }));
+});
+
+// Atrás do Traefik/Dokploy: usar o IP real do cliente (X-Forwarded-For).
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+});
+
 // Camadas (espelham o the-logic-lab): Cache(Redis) · Ef(Postgres) · Http(Polly) · Application
 builder.Services.AddCacheDependencyInjection(builder.Configuration);
 builder.Services.AddEfDependencyInjection(builder.Configuration);
@@ -49,6 +74,7 @@ if (args.Contains("seed"))
     return;
 }
 
+app.UseForwardedHeaders();
 app.UseResponseCompression();
 if (app.Environment.IsDevelopment())
 {
@@ -56,6 +82,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseCors();
+app.UseRateLimiter();
+app.UseOutputCache();
 app.MapControllers();
 
 app.Run();
