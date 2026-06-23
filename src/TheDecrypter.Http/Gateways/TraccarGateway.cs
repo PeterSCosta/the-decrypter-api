@@ -39,12 +39,14 @@ public class TraccarGateway(HttpClient http, IConfiguration config) : IFleetGate
                 p is null ? null : Math.Round(p.Speed * 1.852, 1), // nós → km/h
                 p?.Course,
                 p?.Attributes?.BatteryLevel is { } b ? (int)Math.Round(b) : null,
-                p?.Attributes?.Motion ?? false);
+                p?.Attributes?.Motion ?? false,
+                string.IsNullOrWhiteSpace(d.Phone) ? d.Contact : d.Phone);
         }).ToList();
     }
 
     // JSON do Traccar é camelCase; GetFromJsonAsync usa Web defaults (case-insensitive).
-    private record TraccarDevice(long Id, string? Name, string? Status, DateTime? LastUpdate);
+    private record TraccarDevice(
+        long Id, string? Name, string? Status, DateTime? LastUpdate, string? Phone, string? Contact);
 
     private record TraccarPosition(
         long DeviceId, double Latitude, double Longitude, double Speed, double Course,

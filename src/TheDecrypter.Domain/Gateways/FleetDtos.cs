@@ -13,4 +13,5 @@ public record FleetDevice(
     double? SpeedKmh,
     double? Course,          // rumo em graus
     int? Battery,            // %
-    bool Moving);
+    bool Moving,
+    string? Phone);          // telefone do device no Traccar (se informado)
