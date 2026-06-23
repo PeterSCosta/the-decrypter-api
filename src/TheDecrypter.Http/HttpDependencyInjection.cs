@@ -45,6 +45,20 @@ public static class HttpDependencyInjection
             c.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent); // política do Nominatim
         }).AddResilienceHandler("nominatim", b => AddResilience(b, 30)); // ~1 req/s
 
+        // Traccar (frota, self-hosted). Token/URL server-side; sem config o gateway
+        // retorna vazio. Bearer setado no header quando há token.
+        var traccar = configuration["Traccar:BaseUrl"];
+        var traccarToken = configuration["Traccar:Token"];
+        services.AddHttpClient<IFleetGateway, TraccarGateway>(c =>
+        {
+            if (!string.IsNullOrWhiteSpace(traccar))
+                c.BaseAddress = new Uri(traccar.TrimEnd('/') + "/");
+            c.Timeout = TimeSpan.FromSeconds(15);
+            if (!string.IsNullOrWhiteSpace(traccarToken))
+                c.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", traccarToken);
+        }).AddResilienceHandler("traccar", b => AddResilience(b, 120));
+
         return services;
 
         static void Configure(HttpClient c, string baseUrl)

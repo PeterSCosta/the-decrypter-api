@@ -73,6 +73,10 @@ services:
       Gateways__Cnpj__RatePerMinute: ${CNPJ_RATE_PER_MINUTE:-3}
       Gateways__What3Words__Key: ${W3W_API_KEY:-}
       Gateways__Nominatim__UserAgent: ${NOMINATIM_USER_AGENT:-TheDecrypter/1.0 (+https://arromba.thelogiclab.com.br)}
+      # Frota (Traccar self-hosted). Vazio = aba Frota desativada (lista vazia).
+      # Ex.: https://traccar.thelogiclab.com.br  +  token read-only do Traccar.
+      Traccar__BaseUrl: ${TRACCAR_BASE_URL:-}
+      Traccar__Token: ${TRACCAR_TOKEN:-}
     depends_on:
       decrypter-db: { condition: service_healthy }
       decrypter-cache: { condition: service_healthy }

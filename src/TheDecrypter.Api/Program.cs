@@ -31,7 +31,11 @@ builder.Services.AddSwaggerGen();
 // Output cache: respostas 200 dos lookups guardadas em memória 10 min (varia por
 // rota/query). Camada acima do cache de dados (Redis): repete sem refazer nada.
 builder.Services.AddOutputCache(o =>
-    o.AddPolicy("lookups", b => b.Expire(TimeSpan.FromMinutes(10))));
+{
+    o.AddPolicy("lookups", b => b.Expire(TimeSpan.FromMinutes(10)));
+    // Frota muda o tempo todo: cache curto só p/ coalescer o polling do front (~15s).
+    o.AddPolicy("fleet", b => b.Expire(TimeSpan.FromSeconds(15)));
+});
 
 // Rate-limit por IP (protege a NOSSA API; separado do limite por-upstream do Polly).
 builder.Services.AddRateLimiter(o =>

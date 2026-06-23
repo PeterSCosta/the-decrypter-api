@@ -1,0 +1,36 @@
+# Traccar (rastreamento de frota, open-source) — stack SEPARADA no Dokploy.
+# A equipe instala o app "Traccar Client" e aponta pro servidor; o nosso backend
+# (the-decrypter-api) lê a REST API do Traccar e a aba "Frota" do front mostra.
+#
+# Deploy (Dokploy → Create → Compose, este arquivo):
+#  1. Domain: traccar.thelogiclab.com.br → Container Port 8082 (web + API), HTTPS.
+#  2. A porta 5055 (protocolo OsmAnd, usada pelo app Traccar Client) é publicada
+#     direto no host — libere no firewall. O app posta em:
+#       http://traccar.thelogiclab.com.br:5055   (ou https, conforme a config do app)
+#  3. Primeiro acesso em https://traccar.thelogiclab.com.br → cria o admin.
+#  4. Cadastra cada device (mesmo "identifier" do app) e agrupa em "Equipe".
+#  5. Cria um usuário READ-ONLY + gera um Token (Settings) → põe em
+#     TRACCAR_BASE_URL / TRACCAR_TOKEN no env do the-decrypter-api e redeploya.
+#
+# Banco: H2 embutido (no volume), suficiente p/ equipe pequena. Para escalar,
+# aponte traccar.xml para um Postgres dedicado.
+services:
+  traccar:
+    image: traccar/traccar:6.6
+    restart: always
+    ports:
+      - "5055:5055"      # OsmAnd (Traccar Client). Adicione outras se usar GPS dedicado.
+    volumes:
+      - traccar-data:/opt/traccar/data
+      - traccar-logs:/opt/traccar/logs
+    networks:
+      - logiclabnetwork   # Traefik roteia a web/API (8082); backend alcança internamente
+
+networks:
+  logiclabnetwork:
+    name: logiclabnetwork
+    external: true
+
+volumes:
+  traccar-data:
+  traccar-logs:
