@@ -43,4 +43,11 @@ public class CepRepository(DecrypterDbContext db) : ICepRepository
             .AsNoTracking()
             .ToListAsync(ct);
     }
+
+    public async Task<Cep?> GetByCodeAsync(string code, CancellationToken ct = default)
+    {
+        var digits = new string(code.Where(char.IsDigit).ToArray());
+        if (digits.Length != 8) return null;
+        return await db.Ceps.AsNoTracking().FirstOrDefaultAsync(x => x.Code == digits, ct);
+    }
 }

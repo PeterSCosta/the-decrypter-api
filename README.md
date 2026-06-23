@@ -18,10 +18,16 @@ cd src/TheDecrypter.Api
 dotnet run                           # http://localhost:5080  (Swagger em /swagger)
 ```
 
-### Endpoints (PoC)
+### Endpoints
 - `GET /api/health` → `{ "status": "ok" }`
 - `GET /api/cnpj/{cnpj}` → empresa (cache-first; provedor rate-limited via Polly)
 - `GET /api/cep/search?pattern=88xxx500` → CEPs que casam (Postgres; precisa de dados seedados)
+- `GET /api/cep/{cep}` → CEP exato (base local de SC; se não achar, BrasilAPI)
+- `GET /api/isbn/{isbn}` · `GET /api/ncm/{code}` · `GET /api/registrobr/{dominio}`
+- `GET /api/produto/{barcode}` (Open Food Facts) · `GET /api/pix/{ispb}` (participante PIX)
+
+Todas as consultas externas são **cache-first (Redis)** com resiliência **Polly**
+(timeout · retry · circuit-breaker · rate-limit por upstream).
 
 ## Build & testes
 ```bash

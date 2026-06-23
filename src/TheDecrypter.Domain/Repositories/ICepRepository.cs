@@ -10,4 +10,7 @@ public interface ICepRepository
     /// Ex.: "88xxx500" casa qualquer CEP iniciando 88, terminando 500.
     /// </summary>
     Task<IReadOnlyList<Cep>> SearchWildcardAsync(string pattern, int limit, CancellationToken ct = default);
+
+    /// <summary>CEP exato (8 dígitos) na base local, ou null.</summary>
+    Task<Cep?> GetByCodeAsync(string code, CancellationToken ct = default);
 }
