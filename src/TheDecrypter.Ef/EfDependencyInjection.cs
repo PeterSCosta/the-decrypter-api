@@ -20,6 +20,8 @@ public static class EfDependencyInjection
         services.AddDbContextPool<DecrypterDbContext>(options =>
             options.UseNpgsql(conn).UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
         services.AddScoped<ICepRepository, CepRepository>();
+        services.AddScoped<IStreetRepository, StreetRepository>();
+        services.AddScoped<IMunicipioRepository, MunicipioRepository>();
         return services;
     }
 }

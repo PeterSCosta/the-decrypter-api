@@ -15,6 +15,9 @@ public static class Seeder
     public static async Task RunAsync(IServiceProvider sp, string dataDir, ILogger log)
     {
         var db = sp.GetRequiredService<DecrypterDbContext>();
+        // Extensões usadas na busca por nome (idempotente; o schema.sql também cria).
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE EXTENSION IF NOT EXISTS unaccent; CREATE EXTENSION IF NOT EXISTS pg_trgm;");
         await db.Database.EnsureCreatedAsync();
 
         await SeedMunicipios(db, log, Path.Combine(dataDir, "municipios.json"));

@@ -17,6 +17,10 @@ services:
       AllowedOrigins__0: ${ALLOWED_ORIGIN:-https://arromba.thelogiclab.com.br}
       Gateways__Cnpj__BaseUrl: ${CNPJ_BASE_URL:-https://brasilapi.com.br/api/}
       Gateways__Cnpj__RatePerMinute: ${CNPJ_RATE_PER_MINUTE:-3}
+      # what3words: opcional. Vazio = endpoint /api/what3words desativado (retorna 404).
+      Gateways__What3Words__Key: ${W3W_API_KEY:-}
+      # Nominatim exige User-Agent identificável (política de uso).
+      Gateways__Nominatim__UserAgent: ${NOMINATIM_USER_AGENT:-TheDecrypter/1.0 (+https://arromba.thelogiclab.com.br)}
     networks:
       - logiclabnetwork
 

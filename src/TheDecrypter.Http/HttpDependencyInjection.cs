@@ -20,6 +20,10 @@ public static class HttpDependencyInjection
     {
         var brasilApi = configuration["Gateways:BrasilApi:BaseUrl"] ?? "https://brasilapi.com.br/api/";
         var off = configuration["Gateways:OpenFoodFacts:BaseUrl"] ?? "https://world.openfoodfacts.org/";
+        var w3w = configuration["Gateways:What3Words:BaseUrl"] ?? "https://api.what3words.com/";
+        var nominatim = configuration["Gateways:Nominatim:BaseUrl"] ?? "https://nominatim.openstreetmap.org/";
+        var userAgent = configuration["Gateways:Nominatim:UserAgent"]
+            ?? "TheDecrypter/1.0 (+https://arromba.thelogiclab.com.br)";
         var cnpjRate = configuration.GetValue<int?>("Gateways:Cnpj:RatePerMinute") ?? 3;
         var generalRate = configuration.GetValue<int?>("Gateways:BrasilApi:RatePerMinute") ?? 120;
 
@@ -31,6 +35,15 @@ public static class HttpDependencyInjection
 
         services.AddHttpClient<IProductGateway, OpenFoodFactsGateway>(c => Configure(c, off))
             .AddResilienceHandler("off", b => AddResilience(b, generalRate));
+
+        services.AddHttpClient<IWhat3WordsGateway, What3WordsGateway>(c => Configure(c, w3w))
+            .AddResilienceHandler("w3w", b => AddResilience(b, generalRate));
+
+        services.AddHttpClient<IGeocodeGateway, NominatimGateway>(c =>
+        {
+            Configure(c, nominatim);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent); // política do Nominatim
+        }).AddResilienceHandler("nominatim", b => AddResilience(b, 30)); // ~1 req/s
 
         return services;
 

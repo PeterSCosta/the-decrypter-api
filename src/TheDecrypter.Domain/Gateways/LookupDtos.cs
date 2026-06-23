@@ -13,3 +13,7 @@ public record PixParticipant(string Ispb, string Nome, string NomeReduzido, stri
 public record CepInfo(
     string Cep, string? Logradouro, string? Bairro, string? Localidade,
     string? Uf, double? Lat, double? Lng, string Source);
+
+public record W3wInfo(string Words, double Lat, double Lng, string? NearestPlace, string? Country);
+
+public record GeocodeInfo(string Query, double Lat, double Lng, string? DisplayName);

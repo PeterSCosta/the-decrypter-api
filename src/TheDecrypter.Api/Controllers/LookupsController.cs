@@ -38,4 +38,12 @@ public class LookupsController(ILookupService svc) : ControllerBase
 
     [HttpGet("pix/{ispb}")]
     public Task<IActionResult> Pix(string ispb, CancellationToken ct) => Wrap(() => svc.PixAsync(ispb, ct));
+
+    [HttpGet("what3words/{words}")]
+    public Task<IActionResult> What3Words(string words, CancellationToken ct) =>
+        Wrap(() => svc.W3wAsync(words, ct));
+
+    [HttpGet("geocode")]
+    public Task<IActionResult> Geocode([FromQuery] string q, CancellationToken ct) =>
+        Wrap(() => svc.GeocodeAsync(q ?? string.Empty, ct));
 }

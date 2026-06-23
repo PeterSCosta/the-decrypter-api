@@ -13,6 +13,8 @@ public interface ILookupService
     Task<ProductInfo?> ProductAsync(string barcode, CancellationToken ct = default);
     Task<PixParticipant?> PixAsync(string ispb, CancellationToken ct = default);
     Task<CepInfo?> CepAsync(string cep, CancellationToken ct = default);
+    Task<W3wInfo?> W3wAsync(string words, CancellationToken ct = default);
+    Task<GeocodeInfo?> GeocodeAsync(string query, CancellationToken ct = default);
 }
 
 /// <summary>Consultas externas cache-first (Redis → provedor → cacheia).</summary>
@@ -20,7 +22,9 @@ public partial class LookupService(
     ICacheService cache,
     IBrasilApiGateway brasil,
     IProductGateway products,
-    ICepRepository cepRepo) : ILookupService
+    ICepRepository cepRepo,
+    IWhat3WordsGateway w3wGateway,
+    IGeocodeGateway geoGateway) : ILookupService
 {
     private const int Week = 60 * 24 * 7;
     private const int Day = 60 * 24;
@@ -89,6 +93,23 @@ public partial class LookupService(
         }, Week);
     }
 
+    public Task<W3wInfo?> W3wAsync(string words, CancellationToken ct = default)
+    {
+        var w = words.Trim().TrimStart('/').ToLowerInvariant();
+        if (!ThreeWords().IsMatch(w)) return Task.FromResult<W3wInfo?>(null);
+        return CacheFirst($"w3w:{w}", () => w3wGateway.ConvertAsync(w, ct), Week);
+    }
+
+    public Task<GeocodeInfo?> GeocodeAsync(string query, CancellationToken ct = default)
+    {
+        var q = query.Trim();
+        if (q.Length < 3) return Task.FromResult<GeocodeInfo?>(null);
+        return CacheFirst($"geo:{q.ToLowerInvariant()}", () => geoGateway.SearchAsync(q, ct), Week);
+    }
+
     [GeneratedRegex(@"^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+br$")]
     private static partial Regex DomainBr();
+
+    [GeneratedRegex(@"^\p{L}{2,}\.\p{L}{2,}\.\p{L}{2,}$")]
+    private static partial Regex ThreeWords();
 }
