@@ -51,8 +51,9 @@ public static class Seeder
             throw new ArgumentException($"tabela não permitida no seed: {tableName}", nameof(tableName));
         if (!File.Exists(path)) { log.LogWarning("não achei {path}, pulando {table}", path, tableName); return; }
 
+        // SqlQueryRaw<T> exige que a coluna escalar se chame "Value" (convenção do EF).
         var status = await db.Database
-            .SqlQueryRaw<string>("SELECT status FROM seed_state WHERE table_name = {0}", tableName)
+            .SqlQueryRaw<string>("SELECT status AS \"Value\" FROM seed_state WHERE table_name = {0}", tableName)
             .FirstOrDefaultAsync();
 
         if (status == "complete")
