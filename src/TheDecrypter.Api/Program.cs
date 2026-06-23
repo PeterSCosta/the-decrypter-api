@@ -1,10 +1,23 @@
+using System.IO.Compression;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.ResponseCompression;
 using TheDecrypter.Application;
 using TheDecrypter.Cache;
 using TheDecrypter.Ef;
 using TheDecrypter.Http;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Compressão Brotli + Gzip (respostas JSON podem ser grandes: cep/search, pix).
+builder.Services.AddResponseCompression(o =>
+{
+    o.EnableForHttps = true;
+    o.Providers.Add<BrotliCompressionProvider>();
+    o.Providers.Add<GzipCompressionProvider>();
+    o.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/json"]);
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 
 builder.Services
     .AddControllers()
@@ -36,8 +49,12 @@ if (args.Contains("seed"))
     return;
 }
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseResponseCompression();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 app.UseCors();
 app.MapControllers();
 

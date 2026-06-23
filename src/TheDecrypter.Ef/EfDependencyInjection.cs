@@ -15,7 +15,10 @@ public static class EfDependencyInjection
         var conn = configuration.GetConnectionString("DecrypterDB")
             ?? throw new NotFoundException("DecrypterDB connection not found");
 
-        services.AddDbContext<DecrypterDbContext>(options => options.UseNpgsql(conn));
+        // Pool de DbContext (menos alocação sob carga) + sem tracking por padrão
+        // (a API é read-mostly; o seeder usa Add/SaveChanges normalmente).
+        services.AddDbContextPool<DecrypterDbContext>(options =>
+            options.UseNpgsql(conn).UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
         services.AddScoped<ICepRepository, CepRepository>();
         return services;
     }
