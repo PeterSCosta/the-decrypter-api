@@ -147,13 +147,20 @@ public static class Seeder
     private static async Task<int> SeedStreets(DecrypterDbContext db, ILogger log, string path)
     {
         using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+        // `codigo` é a PK mas NÃO é único na fonte: a mesma rua se repete por bairro
+        // (ex.: cód 512 em 3 bairros) e há duplicatas exatas (ex.: cód 997 ×5).
+        // Para o lookup de referência basta a 1ª ocorrência de cada código.
+        var seen = new HashSet<int>();
         var chunk = new List<Street>(5000);
         var total = 0;
+        var skipped = 0;
         foreach (var r in doc.RootElement.GetProperty("rows").EnumerateArray())
         {
+            var codigo = r.GetProperty("codigo").GetInt32();
+            if (!seen.Add(codigo)) { skipped++; continue; }
             chunk.Add(new Street
             {
-                Codigo = r.GetProperty("codigo").GetInt32(),
+                Codigo = codigo,
                 Tipo = Str(r, "tipo") ?? "",
                 Nome = Str(r, "nome") ?? "",
                 Bairro = NullIfEmpty(Str(r, "bairro")),
@@ -178,6 +185,8 @@ public static class Seeder
             await db.SaveChangesAsync();
             total += chunk.Count;
         }
+        if (skipped > 0)
+            log.LogInformation("street: {n} linhas puladas (codigo repetido)", skipped);
         return total;
     }
 
