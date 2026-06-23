@@ -31,7 +31,9 @@ public class TraccarGateway(HttpClient http, IConfiguration config) : IFleetGate
                 d.Id,
                 string.IsNullOrWhiteSpace(d.Name) ? $"#{d.Id}" : d.Name,
                 d.Status ?? "unknown",
-                d.LastUpdate,
+                // Idade da POSIÇÃO (fix GPS), não do último ping do device — assim o
+                // "visto há X" reflete há quanto tempo a localização é de verdade.
+                p?.FixTime ?? d.LastUpdate,
                 p?.Latitude,
                 p?.Longitude,
                 p is null ? null : Math.Round(p.Speed * 1.852, 1), // nós → km/h
