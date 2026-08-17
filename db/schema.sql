@@ -115,6 +115,62 @@ CREATE INDEX IF NOT EXISTS ix_poste_rua_trgm
   ON poste USING gin (immutable_unaccent(rua) gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS ix_poste_bairro ON poste (bairro);
 
+-- ========== street_rol (Rol de Ruas COMPLETO) ==========
+-- A tabela `street` usa `codigo` como PK, e isso engole 415 das 4.426 linhas: a
+-- mesma rua existe em vários bairros, com `localizacao` e extensão diferentes em
+-- cada um. Ela continua servindo `/api/streets/search` (consulta por chave, onde
+-- a fusão não incomoda); esta guarda o rol INTEIRO, com os campos que faltavam
+-- lá — `bairro_num`, `atas`, `lat` e `lng`.
+--
+-- Tabela nova em vez de alterar a PK de `street`: o sidecar de seed reaplica
+-- este arquivo em todo deploy, com a API antiga viva, e trocar chave primária é
+-- justamente o DDL destrutivo que o DEPLOY.md §6 proíbe nesse caminho.
+CREATE TABLE IF NOT EXISTS street_rol (
+  id          integer PRIMARY KEY,   -- sintética: o rol não tem chave própria
+  codigo      integer NOT NULL,
+  tipo        text NOT NULL,
+  nome        text NOT NULL,
+  bairro_num  integer,
+  bairro      text,
+  num_lei     integer,
+  data_lei    text,
+  localizacao text,
+  ext         double precision,
+  larg        double precision,
+  atas        text,
+  lat         double precision,
+  lng         double precision
+);
+CREATE INDEX IF NOT EXISTS ix_street_rol_codigo ON street_rol (codigo);
+CREATE INDEX IF NOT EXISTS ix_street_rol_nome_trgm
+  ON street_rol USING gin (immutable_unaccent(nome) gin_trgm_ops);
+
+-- ========== bridge (pontes, passarelas e viadutos nomeados) ==========
+CREATE TABLE IF NOT EXISTS bridge (
+  id          integer PRIMARY KEY,
+  nome        text NOT NULL,
+  nome_osm    text,
+  apelidos    text,
+  tipo        text,
+  fonte       text,
+  lei         text,
+  num_lei     integer,
+  ano_lei     integer,
+  data_lei    text,
+  ementa      text,
+  url_lei     text,
+  situacao    text,
+  lat         double precision,
+  lng         double precision,
+  comprimento double precision,
+  via         text,
+  material    text,
+  transpoe    text,
+  bairros     text
+);
+CREATE INDEX IF NOT EXISTS ix_bridge_nome_trgm
+  ON bridge USING gin (immutable_unaccent(nome) gin_trgm_ops);
+
 -- ========== airport (OpenFlights) ==========
 -- 7.599 aeroportos. Consulta por chave exata (IATA de 3 ou ICAO de 4 letras);
 -- era um `find` linear sobre a base inteira, baixada no navegador.

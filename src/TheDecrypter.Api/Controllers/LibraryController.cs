@@ -38,12 +38,17 @@ public class LibraryController(DecrypterDbContext db) : ControllerBase
                 "Cidade Iluminada (Exati/IPBL) — coleta própria", await db.Postes.CountAsync(ct), true),
             new("cep", "CEPs de Santa Catarina", "CEP → logradouro, bairro, município, coordenada",
                 "Base dos Dados", await db.Ceps.CountAsync(ct), true),
-            new("street", "Rol de Ruas de Blumenau", "código / nº da lei / nome → rua, bairro",
-                "Prefeitura de Blumenau", await db.Streets.CountAsync(ct), true),
+            // `street_rol`, e não `street`: aquela usa `codigo` como chave e
+            // funde 415 linhas (a mesma rua em outro bairro). A Biblioteca tem de
+            // mostrar o acervo inteiro, não a versão colapsada.
+            new("street", "Rol de Ruas de Blumenau", "código / nº da lei / nome → rua, bairro, lei, extensão",
+                "Prefeitura de Blumenau", await db.StreetRol.CountAsync(ct), true),
             new("municipio", "Municípios do Brasil", "código IBGE → nome, UF",
                 "IBGE", await db.Municipios.CountAsync(ct), true),
             new("airport", "Aeroportos do mundo", "IATA / ICAO → nome, cidade, país, coordenada",
                 "OpenFlights", await db.Airports.CountAsync(ct), true),
+            new("bridge", "Pontes, passarelas e viadutos", "nome ou apelido → lei que nomeou, coordenada, o que transpõe",
+                "Câmara Municipal de Blumenau + OpenStreetMap", await db.Bridges.CountAsync(ct), true),
         };
         return Ok(new { total = bases.Count, hits = bases });
     }
@@ -89,10 +94,23 @@ public class LibraryController(DecrypterDbContext db) : ControllerBase
             }
             case "street":
             {
-                var query = db.Streets.AsQueryable();
-                if (termo.Length > 0) query = query.Where(s => EF.Functions.ILike(s.Nome, like));
+                var query = db.StreetRol.AsQueryable();
+                if (termo.Length > 0)
+                    query = query.Where(s =>
+                        EF.Functions.ILike(s.Nome, like) || EF.Functions.ILike(s.Bairro!, like));
                 var total = await query.CountAsync(ct);
-                var hits = await query.OrderBy(s => s.Nome).Skip(salto).Take(n).ToListAsync(ct);
+                var hits = await query.OrderBy(s => s.Nome).ThenBy(s => s.Bairro)
+                    .Skip(salto).Take(n).ToListAsync(ct);
+                return Ok(new { total, page, size = n, hits });
+            }
+            case "bridge":
+            {
+                var query = db.Bridges.AsQueryable();
+                if (termo.Length > 0)
+                    query = query.Where(b =>
+                        EF.Functions.ILike(b.Nome, like) || EF.Functions.ILike(b.Apelidos!, like));
+                var total = await query.CountAsync(ct);
+                var hits = await query.OrderBy(b => b.Nome).Skip(salto).Take(n).ToListAsync(ct);
                 return Ok(new { total, page, size = n, hits });
             }
             case "municipio":

@@ -11,6 +11,8 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<Poste> Postes => Set<Poste>();
     public DbSet<Airport> Airports => Set<Airport>();
+    public DbSet<StreetRol> StreetRol => Set<StreetRol>();
+    public DbSet<Bridge> Bridges => Set<Bridge>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -53,6 +55,52 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
             e.Property(x => x.Nome).HasColumnName("nome");
             e.Property(x => x.Uf).HasColumnName("uf").HasMaxLength(2);
             e.HasIndex(x => x.Uf);
+        });
+
+        b.Entity<StreetRol>(e =>
+        {
+            e.ToTable("street_rol");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
+            e.Property(x => x.Codigo).HasColumnName("codigo");
+            e.Property(x => x.Tipo).HasColumnName("tipo");
+            e.Property(x => x.Nome).HasColumnName("nome");
+            e.Property(x => x.BairroNum).HasColumnName("bairro_num");
+            e.Property(x => x.Bairro).HasColumnName("bairro");
+            e.Property(x => x.NumLei).HasColumnName("num_lei");
+            e.Property(x => x.DataLei).HasColumnName("data_lei");
+            e.Property(x => x.Localizacao).HasColumnName("localizacao");
+            e.Property(x => x.Ext).HasColumnName("ext");
+            e.Property(x => x.Larg).HasColumnName("larg");
+            e.Property(x => x.Atas).HasColumnName("atas");
+            e.Property(x => x.Lat).HasColumnName("lat");
+            e.Property(x => x.Lng).HasColumnName("lng");
+        });
+
+        b.Entity<Bridge>(e =>
+        {
+            e.ToTable("bridge");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
+            e.Property(x => x.Nome).HasColumnName("nome");
+            e.Property(x => x.NomeOsm).HasColumnName("nome_osm");
+            e.Property(x => x.Apelidos).HasColumnName("apelidos");
+            e.Property(x => x.Tipo).HasColumnName("tipo");
+            e.Property(x => x.Fonte).HasColumnName("fonte");
+            e.Property(x => x.Lei).HasColumnName("lei");
+            e.Property(x => x.NumLei).HasColumnName("num_lei");
+            e.Property(x => x.AnoLei).HasColumnName("ano_lei");
+            e.Property(x => x.DataLei).HasColumnName("data_lei");
+            e.Property(x => x.Ementa).HasColumnName("ementa");
+            e.Property(x => x.UrlLei).HasColumnName("url_lei");
+            e.Property(x => x.Situacao).HasColumnName("situacao");
+            e.Property(x => x.Lat).HasColumnName("lat");
+            e.Property(x => x.Lng).HasColumnName("lng");
+            e.Property(x => x.Comprimento).HasColumnName("comprimento");
+            e.Property(x => x.Via).HasColumnName("via");
+            e.Property(x => x.Material).HasColumnName("material");
+            e.Property(x => x.Transpoe).HasColumnName("transpoe");
+            e.Property(x => x.Bairros).HasColumnName("bairros");
         });
 
         b.Entity<Airport>(e =>

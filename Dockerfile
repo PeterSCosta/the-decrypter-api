@@ -24,6 +24,7 @@ COPY seed-data/streets.json    ./data/streets.json
 COPY seed-data/ceps.json       ./data/ceps.json
 COPY seed-data/postes.json     ./data/postes.json
 COPY seed-data/airports.json   ./data/airports.json
+COPY seed-data/bridges.json    ./data/bridges.json
 
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "TheDecrypter.Api.dll"]

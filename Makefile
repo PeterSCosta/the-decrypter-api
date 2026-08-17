@@ -7,7 +7,7 @@
 
 FRONT ?= ../the-decrypter
 DATA_DST := seed-data
-JSONS := municipios.json streets.json ceps.json postes.json airports.json
+JSONS := municipios.json streets.json ceps.json postes.json airports.json bridges.json
 
 # Os datasets estão migrando de `public/data` (servido ao navegador) para
 # `seed-data` (só fonte de seed). Procuramos nos dois: enquanto a migração não

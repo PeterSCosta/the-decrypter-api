@@ -31,6 +31,8 @@ public static class Seeder
         await SeedTable(db, log, "cep", Path.Combine(dataDir, "ceps.json"), SeedCeps);
         await SeedTable(db, log, "poste", Path.Combine(dataDir, "postes.json"), SeedPostes);
         await SeedTable(db, log, "airport", Path.Combine(dataDir, "airports.json"), SeedAirports);
+        await SeedTable(db, log, "street_rol", Path.Combine(dataDir, "streets.json"), SeedStreetRol);
+        await SeedTable(db, log, "bridge", Path.Combine(dataDir, "bridges.json"), SeedBridges);
 
         log.LogInformation("Seed concluído.");
     }
@@ -44,7 +46,7 @@ public static class Seeder
     // Allow-list: TRUNCATE não aceita parâmetro para identificador, então o nome
     // entra direto no SQL. Validar contra esta lista bloqueia injeção via parâmetro.
     private static readonly HashSet<string> AllowedTables =
-        ["municipio", "street", "cep", "poste", "airport"];
+        ["municipio", "street", "cep", "poste", "airport", "street_rol", "bridge"];
 
     private static async Task SeedTable(
         DecrypterDbContext db, ILogger log, string tableName, string path,
@@ -353,6 +355,97 @@ public static class Seeder
             total += chunk.Count;
         }
         return total;
+    }
+
+
+    /// <summary>
+    /// Rol de Ruas COMPLETO. Ao contrário de `SeedStreets`, **não deduplica por
+    /// código**: as 415 linhas que ele descarta são a mesma rua em outro bairro,
+    /// com localização e extensão próprias — informação, não repetição.
+    /// </summary>
+    private static async Task<int> SeedStreetRol(DecrypterDbContext db, ILogger log, string path)
+    {
+        using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+        var chunk = new List<StreetRol>(5000);
+        var total = 0;
+        var id = 0;
+        foreach (var r in doc.RootElement.GetProperty("rows").EnumerateArray())
+        {
+            chunk.Add(new StreetRol
+            {
+                Id = ++id,
+                Codigo = Int(r, "codigo") ?? 0,
+                Tipo = Str(r, "tipo") ?? "",
+                Nome = Str(r, "nome") ?? "",
+                BairroNum = Int(r, "bairroNum"),
+                Bairro = NullIfEmpty(Str(r, "bairro")),
+                NumLei = Int(r, "numLei"),
+                DataLei = NullIfEmpty(Str(r, "dataLei")),
+                Localizacao = NullIfEmpty(Str(r, "localizacao")),
+                Ext = Dbl(r, "ext"),
+                Larg = Dbl(r, "larg"),
+                Atas = NullIfEmpty(Str(r, "atas")),
+                Lat = Dbl(r, "lat"),
+                Lng = Dbl(r, "lng"),
+            });
+            if (chunk.Count >= 5000)
+            {
+                db.StreetRol.AddRange(chunk);
+                await db.SaveChangesAsync();
+                db.ChangeTracker.Clear();
+                total += chunk.Count;
+                chunk.Clear();
+            }
+        }
+        if (chunk.Count > 0)
+        {
+            db.StreetRol.AddRange(chunk);
+            await db.SaveChangesAsync();
+            total += chunk.Count;
+        }
+        return total;
+    }
+
+    /// <summary>Pontes nomeadas. Listas viram texto juntado — é o que se lê.</summary>
+    private static async Task<int> SeedBridges(DecrypterDbContext db, ILogger log, string path)
+    {
+        using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+        static string? Lista(JsonElement r, string nome) =>
+            r.TryGetProperty(nome, out var a) && a.ValueKind == JsonValueKind.Array && a.GetArrayLength() > 0
+                ? string.Join(" · ", a.EnumerateArray().Select(x => x.ToString()))
+                : null;
+
+        var chunk = new List<Bridge>();
+        var id = 0;
+        foreach (var r in doc.RootElement.GetProperty("rows").EnumerateArray())
+        {
+            chunk.Add(new Bridge
+            {
+                Id = ++id,
+                Nome = Str(r, "nome") ?? "",
+                NomeOsm = NullIfEmpty(Str(r, "nomeOsm")),
+                Apelidos = Lista(r, "apelidos"),
+                Tipo = NullIfEmpty(Str(r, "tipo")),
+                Fonte = NullIfEmpty(Str(r, "fonte")),
+                Lei = NullIfEmpty(Str(r, "lei")),
+                NumLei = Int(r, "numLei"),
+                AnoLei = Int(r, "anoLei"),
+                DataLei = NullIfEmpty(Str(r, "dataLei")),
+                Ementa = NullIfEmpty(Str(r, "ementa")),
+                UrlLei = NullIfEmpty(Str(r, "urlLei")),
+                Situacao = NullIfEmpty(Str(r, "situacao")),
+                Lat = Dbl(r, "lat"),
+                Lng = Dbl(r, "lng"),
+                Comprimento = Dbl(r, "comprimento"),
+                Via = NullIfEmpty(Str(r, "via")),
+                Material = NullIfEmpty(Str(r, "material")),
+                Transpoe = Lista(r, "transpoe"),
+                Bairros = Lista(r, "bairros"),
+            });
+        }
+        db.Bridges.AddRange(chunk);
+        await db.SaveChangesAsync();
+        return chunk.Count;
     }
 
 }
