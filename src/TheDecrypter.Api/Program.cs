@@ -10,6 +10,7 @@ using TheDecrypter.Api.Auth;
 using TheDecrypter.Application;
 using TheDecrypter.Application.Auth;
 using TheDecrypter.Cache;
+using TheDecrypter.Domain.Http;
 using TheDecrypter.Ef;
 using TheDecrypter.Http;
 
@@ -52,18 +53,26 @@ builder.Services.AddOutputCache(o =>
 // Nota: a partição é por IP, e uma equipe inteira atrás do NAT do local divide o
 // mesmo balde. Por isso o limite de login é por IP+e-mail: senão um endereço
 // compartilhado travaria o login de todo mundo ao primeiro engano de senha.
+// De quem é a requisição. NÃO usar `Connection.RemoteIpAddress` direto: atrás da
+// Cloudflare ele é o IP da borda, que muda a cada requisição — e uma partição
+// nova por requisição é um limitador desligado. Ver `ClientIp`.
+static string DeQuemE(HttpContext ctx) => ClientIp.Resolver(
+    ctx.Request.Headers[ClientIp.CabecalhoCloudflare],
+    ctx.Request.Headers["X-Forwarded-For"],
+    ctx.Connection.RemoteIpAddress?.ToString());
+
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
-            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            DeQuemE(ctx),
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1) }));
 
     // Login e cadastro: 120/min é convite a força bruta de senha.
     o.AddPolicy("auth", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
-            $"auth:{ctx.Connection.RemoteIpAddress}",
+            $"auth:{DeQuemE(ctx)}",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
 
     // O 429 chegava com corpo vazio, e o app o mostrava como "erro inesperado".
