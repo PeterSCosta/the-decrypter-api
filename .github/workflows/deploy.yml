@@ -74,7 +74,20 @@ jobs:
             echo "Secrets do Dokploy ausentes — imagem publicada; faça Redeploy manual no painel."
             exit 0
           fi
-          curl -sf -X POST "$DOKPLOY_URL/api/compose.deploy" \
+          # Sem `-f`: com ele o curl sai com código 22 e ENGOLE o corpo da
+          # resposta, então uma chave errada, um composeId de stack recriada e um
+          # painel fora do ar viram todos o mesmo "exit 22" — impossível de
+          # diagnosticar sem reproduzir à mão. Aqui o status e o motivo aparecem
+          # no log, e o passo falha depois de mostrar por quê.
+          CODIGO=$(curl -s -o /tmp/dokploy.json -w "%{http_code}" \
+            -X POST "$DOKPLOY_URL/api/compose.deploy" \
             -H "x-api-key: $DOKPLOY_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"composeId\":\"$DOKPLOY_COMPOSE_ID\"}"
+            -d "{\"composeId\":\"$DOKPLOY_COMPOSE_ID\"}")
+          echo "Dokploy respondeu HTTP $CODIGO:"
+          cat /tmp/dokploy.json; echo
+          if [ "$CODIGO" -ge 400 ] || [ "$CODIGO" -eq 000 ]; then
+            echo "::error::Deploy não disparou (HTTP $CODIGO). A imagem JÁ está publicada —" \
+                 "dá para subir pelo Redeploy manual no painel enquanto o gatilho é consertado."
+            exit 1
+          fi
