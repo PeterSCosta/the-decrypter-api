@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using TheDecrypter.Domain.Gateways;
@@ -6,6 +7,7 @@ namespace TheDecrypter.Api.Controllers;
 
 [ApiController]
 [Route("api/fleet")]
+[Authorize]
 [OutputCache(PolicyName = "fleet")]
 public class FleetController(IFleetGateway gateway) : ControllerBase
 {

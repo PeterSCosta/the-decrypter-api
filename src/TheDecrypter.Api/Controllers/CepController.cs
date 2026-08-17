@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using TheDecrypter.Application.Lookups;
@@ -7,6 +8,7 @@ namespace TheDecrypter.Api.Controllers;
 
 [ApiController]
 [Route("api/cep")]
+[Authorize]
 [OutputCache(PolicyName = "lookups")]
 public class CepController(ICepRepository repo, ILookupService lookup) : ControllerBase
 {
@@ -18,8 +20,10 @@ public class CepController(ICepRepository repo, ILookupService lookup) : Control
         if (string.IsNullOrWhiteSpace(pattern))
             return BadRequest(new { message = "informe ?pattern= (ex.: 88xxx500)" });
 
-        var hits = await repo.SearchWildcardAsync(pattern, Math.Clamp(limit, 1, 500), ct);
-        return Ok(new { total = hits.Count, hits });
+        var (hits, total) = await repo.SearchWildcardAsync(pattern, Math.Clamp(limit, 1, 500), ct);
+        // `total` é a contagem real; `hits` vem limitado. O app mostra o total
+        // no rótulo ("88xxx500 · 213 CEP(s)") e a lista truncada no card.
+        return Ok(new { total, truncado = hits.Count < total, hits });
     }
 
     /// <summary>CEP exato (8 dígitos): base local de SC; se não achar, BrasilAPI.</summary>

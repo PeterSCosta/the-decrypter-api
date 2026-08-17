@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using TheDecrypter.Application.Cnpj;
@@ -6,6 +7,7 @@ namespace TheDecrypter.Api.Controllers;
 
 [ApiController]
 [Route("api/cnpj")]
+[Authorize]
 [OutputCache(PolicyName = "lookups")]
 public class CnpjController(ICnpjService service) : ControllerBase
 {

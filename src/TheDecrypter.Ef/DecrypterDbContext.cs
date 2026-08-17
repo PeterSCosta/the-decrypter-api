@@ -9,6 +9,8 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
     public DbSet<Street> Streets => Set<Street>();
     public DbSet<Municipio> Municipios => Set<Municipio>();
     public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<Poste> Postes => Set<Poste>();
+    public DbSet<Airport> Airports => Set<Airport>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -53,6 +55,50 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
             e.HasIndex(x => x.Uf);
         });
 
+        b.Entity<Airport>(e =>
+        {
+            e.ToTable("airport");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
+            e.Property(x => x.Iata).HasColumnName("iata");
+            e.Property(x => x.Icao).HasColumnName("icao");
+            e.Property(x => x.Nome).HasColumnName("nome");
+            e.Property(x => x.Cidade).HasColumnName("cidade");
+            e.Property(x => x.Pais).HasColumnName("pais");
+            e.Property(x => x.Lat).HasColumnName("lat");
+            e.Property(x => x.Lng).HasColumnName("lng");
+        });
+
+        b.Entity<Poste>(e =>
+        {
+            e.ToTable("poste");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
+            e.Property(x => x.Plaqueta).HasColumnName("plaqueta");
+            e.Property(x => x.Lat).HasColumnName("lat");
+            e.Property(x => x.Lng).HasColumnName("lng");
+            e.Property(x => x.Rua).HasColumnName("rua");
+            e.Property(x => x.RuaTipo).HasColumnName("rua_tipo");
+            e.Property(x => x.RuaNome).HasColumnName("rua_nome");
+            e.Property(x => x.RuaId).HasColumnName("rua_id");
+            e.Property(x => x.Numero).HasColumnName("numero");
+            e.Property(x => x.Bairro).HasColumnName("bairro");
+            e.Property(x => x.Estrutura).HasColumnName("estrutura");
+            e.Property(x => x.EstruturaId).HasColumnName("estrutura_id");
+            e.Property(x => x.Tipo).HasColumnName("tipo");
+            e.Property(x => x.Status).HasColumnName("status");
+            e.Property(x => x.PontosLuminosos).HasColumnName("pontos_luminosos");
+            e.Property(x => x.Altura).HasColumnName("altura");
+            e.Property(x => x.Instalacao).HasColumnName("instalacao");
+            e.Property(x => x.Alteracao).HasColumnName("alteracao");
+            e.Property(x => x.Cor).HasColumnName("cor");
+            // `coord_bnu` fica FORA do modelo: é coluna gerada e o PG recusa
+            // INSERT que a mencione. `DistanciaMetros` só existe nas consultas
+            // por proximidade, preenchida pelo SELECT.
+            e.Ignore(x => x.DistanciaMetros);
+            e.HasIndex(x => x.Plaqueta);
+        });
+
         b.Entity<AppUser>(e =>
         {
             e.ToTable("app_user");
@@ -60,8 +106,16 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
             e.Property(x => x.Id).HasColumnName("id");
             e.Property(x => x.Email).HasColumnName("email");
             e.Property(x => x.DisplayName).HasColumnName("display_name");
+            e.Property(x => x.PasswordHash).HasColumnName("password_hash");
+            e.Property(x => x.Role).HasColumnName("role");
+            e.Property(x => x.Status).HasColumnName("status");
             e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            e.Property(x => x.ApprovedBy).HasColumnName("approved_by");
             e.HasIndex(x => x.Email).IsUnique();
+            // `PodeEntrar`/`IsAdmin` são derivadas: existem só em C#.
+            e.Ignore(x => x.PodeEntrar);
+            e.Ignore(x => x.IsAdmin);
         });
     }
 }

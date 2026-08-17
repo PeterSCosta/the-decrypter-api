@@ -50,10 +50,20 @@ docker run --rm -p 8080:8080 \
 ## 3. Dokploy — criar a stack
 1. **Create → Compose**, fonte = este repo, arquivo `docker-compose.prod.yml`.
 2. **Environment** (mínimo):
-   - `POSTGRES_PASSWORD` — senha do Postgres dedicado
-   - `REDIS_PASSWORD` — senha do Redis dedicado
+   - **`JWT_SIGNING_KEY`** — **obrigatória, a stack não sobe sem ela.** Gere com
+     `openssl rand -base64 48`. Abaixo de 32 bytes a API **recusa iniciar**, de
+     propósito: chave curta só estoura no primeiro login, com o contêiner
+     aparentemente saudável e o acesso inteiro caído.
+   - **`ADMIN_EMAIL` / `ADMIN_SENHA`** — o primeiro administrador, criado no boot
+     se ainda não existir (idempotente). **Sem ele a base zerada trava**: todo
+     cadastro nasce pendente e só um admin aprova.
    - `ALLOWED_ORIGIN=https://arromba.thelogiclab.com.br`
+   - (opcional) `JWT_HORAS=12` — validade do token.
+   - (opcional) `POSTGRES_PASSWORD` — ver §6.1 antes de definir.
    - (opcional) `W3W_API_KEY=...` (vazia → `/api/what3words` retorna 404)
+
+   > `REDIS_PASSWORD` não é mais lida: o commit `e0c37e6` tirou o `requirepass`
+   > do compose. A instrução anterior estava desatualizada.
 3. **Domains:** `apiarromba.thelogiclab.com.br` · Container Port **8080** · HTTPS on.
 4. **Volumes** (Dokploy gerencia): `decrypter-pgdata`, `decrypter-redisdata`.
 5. Confirme que `logiclabnetwork` existe no host (`docker network ls`).
@@ -112,6 +122,34 @@ pg_restore -U postgres -d decrypter_test /backups/decrypter-2026-06-23.dump
 ```
 
 ## 6. Cuidados
+
+### 6.1 Ligar senha no Postgres (pendente, e agora importa)
+O compose roda o PG em `POSTGRES_HOST_AUTH_METHOD=trust`, e a justificativa
+escrita era *"dados públicos numa rede interna isolada"*. **Ela caiu**: desde que
+`app_user` guarda hash de senha, qualquer contêiner que entre na
+`decrypter-internal` lê a tabela sem apresentar credencial.
+
+Definir `POSTGRES_PASSWORD` **não basta num volume já inicializado** — o
+`pg_hba.conf` mora dentro do volume e continua em `trust`, então a variável não
+surte efeito (e por isso também não quebra nada ao ser definida). O passo é
+manual, uma vez:
+
+```bash
+# 1. terminal no decrypter-db, define a senha do papel existente
+psql -U postgres -d decrypter -c "ALTER USER postgres PASSWORD 'a-senha-escolhida';"
+
+# 2. exige senha nas conexões TCP (o socket local segue em trust)
+sed -i 's/^host all all all trust$/host all all all scram-sha-256/' \
+  /var/lib/postgresql/data/pg_hba.conf
+psql -U postgres -c "SELECT pg_reload_conf();"
+```
+
+Depois defina `POSTGRES_PASSWORD` no Dokploy com o mesmo valor e faça o redeploy —
+a connection string do `decrypter-api` e o `PGPASSWORD` do sidecar já a leem.
+**Ordem importa:** senha no banco primeiro, variável depois. O inverso derruba a
+API no próximo deploy.
+
+### 6.2 Geral
 - **Nunca** rodar `docker compose down -v` ou "Destroy stack" sem snapshot — apaga
   os volumes nomeados (`decrypter-pgdata`, `decrypter-redisdata`).
 - Dokploy prefixa os volumes com o nome da stack — confirme com `docker volume ls`

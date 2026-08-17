@@ -39,9 +39,29 @@ consulta parcial e zero download de 3 MB. Permite expandir CEP de "só SC" → *
   por UF. Ver `Ef/Repositories/CepRepository.cs`.
 - **Busca por nome** (logradouro/bairro/rua): `pg_trgm` + `unaccent` (GIN) — fuzzy e sem acento.
 
-### 4. Auth / acesso / usuários
-Reusar o JWT/OIDC (Keycloak) do the-logic-lab. PoC fica anônimo; depois `[Authorize]` +
-limite por usuário/tenant. Tabela `app_user` já no schema.
+### 4. Auth / acesso / usuários — **decisão revista (implementada)**
+A decisão original era reusar o JWT/OIDC (Keycloak) do the-logic-lab. **Foi
+superada:** o app tem um público pequeno e conhecido, e depender do Keycloak
+acoplaria o acesso do Decrypter ao ciclo de vida de outro produto, para uma
+necessidade que é "um punhado de pessoas que eu libero na mão".
+
+O que existe hoje: **e-mail + senha próprios**, hash PBKDF2 (`IPasswordHasher`,
+sem arrastar o ASP.NET Identity), **JWT HS256 emitido pela própria API**, e
+**aprovação manual** — todo cadastro nasce `pendente` e só um admin libera.
+`app_user` ganhou `password_hash`, `role`, `status`, `approved_at`/`approved_by`,
+todos por `ALTER TABLE ... IF NOT EXISTS`.
+
+Bearer e não cookie: o CORS já libera qualquer header, então o `Authorization`
+passa sem mexer em política; cookie exigiria `AllowCredentials` dos dois lados.
+O token vive em `localStorage` do app — exposto a XSS, compensado por validade
+curta (12 h) e ausência de refresh token. É trade registrado, não descuido.
+
+Todos os endpoints de dados são `[Authorize]`; só `/api/health` e as rotas de
+`/api/auth` ficam anônimas. A chave de assinatura é validada **no boot** e a API
+recusa subir se for curta demais.
+
+Se um dia o Keycloak virar requisito (SSO entre os produtos), o caminho é trocar
+o emissor mantendo `[Authorize]` e os papéis — a superfície já está no lugar.
 
 ## Fontes de dados (decisões)
 - **Cidades (IBGE):** API Localidades (`/api/v1/localidades/municipios`) → 5.570 municípios +

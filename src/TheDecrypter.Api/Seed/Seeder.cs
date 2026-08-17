@@ -29,6 +29,8 @@ public static class Seeder
         await SeedTable(db, log, "municipio", Path.Combine(dataDir, "municipios.json"), SeedMunicipios);
         await SeedTable(db, log, "street", Path.Combine(dataDir, "streets.json"), SeedStreets);
         await SeedTable(db, log, "cep", Path.Combine(dataDir, "ceps.json"), SeedCeps);
+        await SeedTable(db, log, "poste", Path.Combine(dataDir, "postes.json"), SeedPostes);
+        await SeedTable(db, log, "airport", Path.Combine(dataDir, "airports.json"), SeedAirports);
 
         log.LogInformation("Seed concluído.");
     }
@@ -41,7 +43,8 @@ public static class Seeder
     /// </summary>
     // Allow-list: TRUNCATE não aceita parâmetro para identificador, então o nome
     // entra direto no SQL. Validar contra esta lista bloqueia injeção via parâmetro.
-    private static readonly HashSet<string> AllowedTables = ["municipio", "street", "cep"];
+    private static readonly HashSet<string> AllowedTables =
+        ["municipio", "street", "cep", "poste", "airport"];
 
     private static async Task SeedTable(
         DecrypterDbContext db, ILogger log, string tableName, string path,
@@ -229,4 +232,127 @@ public static class Seeder
         }
         return total;
     }
+
+    /// <summary>
+    /// Postes de Blumenau, do formato posicional com dicionário.
+    ///
+    /// O JSON traz `campos` com a ordem das colunas — mas os índices aqui são
+    /// fixos de propósito: se a ordem mudar na origem, é melhor o seed falhar de
+    /// cara na conversão do que carregar 45 mil linhas com o bairro no lugar da
+    /// estrutura. Os dicionários usam -1 para nulo.
+    /// </summary>
+    private static async Task<int> SeedPostes(DecrypterDbContext db, ILogger log, string path)
+    {
+        using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+        var root = doc.RootElement;
+
+        string[] Dic(string nome) => root.TryGetProperty(nome, out var a)
+            ? [.. a.EnumerateArray().Select(x => x.GetString() ?? "")]
+            : [];
+        var logradouros = root.GetProperty("logradouros").EnumerateArray().ToArray();
+        var bairros = Dic("bairros");
+        var estruturas = Dic("estruturas");
+        var tipos = Dic("tipos");
+        var situacoes = Dic("situacoes");
+        var datas = Dic("datas");
+
+        static string? Ref(string[] dic, JsonElement e)
+        {
+            var i = e.GetInt32();
+            return i >= 0 && i < dic.Length ? dic[i] : null;
+        }
+        static int? Int(JsonElement e) => e.ValueKind == JsonValueKind.Number ? e.GetInt32() : null;
+        static DateTimeOffset? Data(string[] dic, JsonElement e)
+        {
+            var v = Ref(dic, e);
+            // O portal não informa fuso; as datas são horário local de Blumenau.
+            return v is null ? null : DateTime.SpecifyKind(DateTime.Parse(v), DateTimeKind.Utc);
+        }
+
+        var chunk = new List<Poste>(5000);
+        var total = 0;
+        foreach (var r in root.GetProperty("rows").EnumerateArray())
+        {
+            var log0 = logradouros[r[4].GetInt32()];
+            chunk.Add(new Poste
+            {
+                Id = r[0].GetInt32(),
+                Plaqueta = NullIfEmpty(r[1].GetString()),
+                Lat = r[2].GetDouble(),
+                Lng = r[3].GetDouble(),
+                Rua = NullIfEmpty(log0[0].GetString()),
+                RuaTipo = NullIfEmpty(log0[1].GetString()),
+                RuaNome = NullIfEmpty(log0[2].GetString()),
+                RuaId = Int(log0[3]),
+                Numero = Int(r[5]),
+                Bairro = Ref(bairros, r[6]),
+                Estrutura = Ref(estruturas, r[7]),
+                EstruturaId = Int(r[8]),
+                Tipo = Ref(tipos, r[9]),
+                Status = Ref(situacoes, r[10]),
+                PontosLuminosos = Int(r[11]) is { } pl ? (short)pl : null,
+                Altura = Int(r[12]),
+                Instalacao = Data(datas, r[13]),
+                Alteracao = Data(datas, r[14]),
+                Cor = Int(r[15]),
+            });
+            if (chunk.Count >= 5000)
+            {
+                db.Postes.AddRange(chunk);
+                await db.SaveChangesAsync();
+                db.ChangeTracker.Clear();
+                total += chunk.Count;
+                chunk.Clear();
+            }
+        }
+        if (chunk.Count > 0)
+        {
+            db.Postes.AddRange(chunk);
+            await db.SaveChangesAsync();
+            total += chunk.Count;
+        }
+        return total;
+    }
+
+
+    /// <summary>Aeroportos (OpenFlights), formato posicional já na origem.</summary>
+    private static async Task<int> SeedAirports(DecrypterDbContext db, ILogger log, string path)
+    {
+        using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+        var chunk = new List<Airport>(5000);
+        var total = 0;
+        var id = 0;
+        foreach (var r in doc.RootElement.GetProperty("rows").EnumerateArray())
+        {
+            chunk.Add(new Airport
+            {
+                Id = ++id,
+                // A origem usa "" para ausente; o índice parcial do schema conta
+                // com isso (WHERE iata <> ''), então guardamos como veio.
+                Iata = r[0].GetString() ?? "",
+                Icao = r[1].GetString() ?? "",
+                Nome = NullIfEmpty(r[2].GetString()),
+                Cidade = NullIfEmpty(r[3].GetString()),
+                Pais = NullIfEmpty(r[4].GetString()),
+                Lat = r[5].ValueKind == JsonValueKind.Number ? r[5].GetDouble() : null,
+                Lng = r[6].ValueKind == JsonValueKind.Number ? r[6].GetDouble() : null,
+            });
+            if (chunk.Count >= 5000)
+            {
+                db.Airports.AddRange(chunk);
+                await db.SaveChangesAsync();
+                db.ChangeTracker.Clear();
+                total += chunk.Count;
+                chunk.Clear();
+            }
+        }
+        if (chunk.Count > 0)
+        {
+            db.Airports.AddRange(chunk);
+            await db.SaveChangesAsync();
+            total += chunk.Count;
+        }
+        return total;
+    }
+
 }

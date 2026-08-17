@@ -69,7 +69,74 @@ CREATE TABLE IF NOT EXISTS seed_state (
   finished_at timestamptz
 );
 
--- ===== Usuários (futuro: acesso + limite por usuário/tenant) =====
+-- ========== poste (iluminação pública de Blumenau) ==========
+-- 45.285 pontos coletados do portal Cidade Iluminada (Exati/IPBL).
+CREATE TABLE IF NOT EXISTS poste (
+  id               integer PRIMARY KEY,
+  -- TEXT, não integer: 14 plaquetas têm zero à esquerda ("0338") e uma é
+  -- "66688z". Como número, "0338" viraria 338 — outro poste.
+  plaqueta         text,
+  lat              double precision NOT NULL,
+  lng              double precision NOT NULL,
+  rua              text,
+  rua_tipo         text,
+  rua_nome         text,
+  rua_id           integer,
+  numero           integer,
+  bairro           text,
+  estrutura        text,
+  estrutura_id     integer,
+  tipo             text,
+  status           text,
+  pontos_luminosos smallint,
+  altura           integer,
+  instalacao       timestamptz,
+  alteracao        timestamptz,
+  cor              integer,
+  -- Coordenada projetada para busca por proximidade. A longitude é pré-escalada
+  -- por cos(26,9°) para a distância euclidiana do GiST ficar proporcional à
+  -- métrica; metros ≈ graus × 111320.
+  --
+  -- A CONSTANTE É ÚNICA E COMPARTILHADA DE PROPÓSITO. Trocar por
+  -- `cos(radians(lat))` (por linha) compila, é IMMUTABLE e está ERRADO: cada
+  -- linha escalada pelo próprio cosseno introduz ~49 × Δcos ≈ 0,04° de
+  -- deslocamento fantasma entre dois pontos — cerca de 4 km.
+  coord_bnu        point GENERATED ALWAYS AS (point(lat, lng * 0.8918)) STORED
+);
+
+-- KNN de verdade: o core do Postgres traz `point_ops` para GiST com `<->` como
+-- ordering operator, então `ORDER BY coord_bnu <-> point(?,?) LIMIT n` é varredura
+-- por índice, sem PostGIS. O mesmo índice atende a caixa (`coord_bnu <@ box(...)`),
+-- por isso NÃO existe btree em (lat,lng): seria um segundo índice para o mesmo
+-- acesso.
+CREATE INDEX IF NOT EXISTS ix_poste_coord_gist ON poste USING gist (coord_bnu);
+CREATE INDEX IF NOT EXISTS ix_poste_plaqueta ON poste (plaqueta);
+CREATE INDEX IF NOT EXISTS ix_poste_rua_trgm
+  ON poste USING gin (immutable_unaccent(rua) gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS ix_poste_bairro ON poste (bairro);
+
+-- ========== airport (OpenFlights) ==========
+-- 7.599 aeroportos. Consulta por chave exata (IATA de 3 ou ICAO de 4 letras);
+-- era um `find` linear sobre a base inteira, baixada no navegador.
+CREATE TABLE IF NOT EXISTS airport (
+  -- Chave sintética: a origem não tem uma. Nem todo aeroporto tem IATA e há
+  -- ICAO repetido, então nenhum código serve de PK — e o EF Core não insere em
+  -- entidade sem chave (`HasNoKey` é só para leitura).
+  id      integer PRIMARY KEY,
+  iata    text,
+  icao    text,
+  nome    text,
+  cidade  text,
+  pais    text,
+  lat     double precision,
+  lng     double precision
+);
+-- Sem PK: nem todo aeroporto tem IATA, e há ICAO repetido na base de origem.
+-- Os dois índices são parciais para não indexar as centenas de vazios.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_airport_iata ON airport (iata) WHERE iata <> '';
+CREATE INDEX IF NOT EXISTS ix_airport_icao ON airport (icao) WHERE icao <> '';
+
+-- ===== Usuários: acesso ao app, com aprovação manual =====
 CREATE TABLE IF NOT EXISTS app_user (
   id           uuid PRIMARY KEY,
   email        text NOT NULL,
@@ -77,3 +144,17 @@ CREATE TABLE IF NOT EXISTS app_user (
   created_at   timestamptz NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_app_user_email ON app_user (email);
+
+-- Colunas de acesso. Aditivas de propósito: o sidecar de seed reaplica este
+-- arquivo em TODO deploy, com a API antiga ainda servindo tráfego (DEPLOY.md §6).
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS password_hash text;
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS role          text NOT NULL DEFAULT 'user';
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS status        text NOT NULL DEFAULT 'pendente';
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS approved_at   timestamptz;
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS approved_by   uuid;
+
+-- O índice único original é sensível a maiúscula: "Peter@x" e "peter@x" entravam
+-- como duas contas, e a segunda nunca conseguiria logar de forma previsível. O
+-- serviço normaliza para minúscula na escrita; este índice é a rede de segurança
+-- para qualquer caminho que esqueça de normalizar.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_app_user_email_lower ON app_user (lower(email));

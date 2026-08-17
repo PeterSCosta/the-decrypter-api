@@ -1,9 +1,14 @@
 using System.IO.Compression;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.IdentityModel.Tokens;
+using TheDecrypter.Api.Auth;
 using TheDecrypter.Application;
+using TheDecrypter.Application.Auth;
 using TheDecrypter.Cache;
 using TheDecrypter.Ef;
 using TheDecrypter.Http;
@@ -38,6 +43,15 @@ builder.Services.AddOutputCache(o =>
 });
 
 // Rate-limit por IP (protege a NOSSA API; separado do limite por-upstream do Polly).
+//
+// Duas faixas na MESMA partição global, e não uma política de endpoint: em
+// ASP.NET Core o `GlobalLimiter` roda **junto** com as políticas de endpoint, não
+// no lugar delas — um `[EnableRateLimiting]` mais generoso não levantaria o teto,
+// só somaria outro. Então a distinção mora aqui.
+//
+// Nota: a partição é por IP, e uma equipe inteira atrás do NAT do local divide o
+// mesmo balde. Por isso o limite de login é por IP+e-mail: senão um endereço
+// compartilhado travaria o login de todo mundo ao primeiro engano de senha.
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -45,6 +59,21 @@ builder.Services.AddRateLimiter(o =>
         RateLimitPartition.GetFixedWindowLimiter(
             ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1) }));
+
+    // Login e cadastro: 120/min é convite a força bruta de senha.
+    o.AddPolicy("auth", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            $"auth:{ctx.Connection.RemoteIpAddress}",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+
+    // O 429 chegava com corpo vazio, e o app o mostrava como "erro inesperado".
+    o.OnRejected = async (ctx, ct) =>
+    {
+        ctx.HttpContext.Response.Headers.RetryAfter = "60";
+        ctx.HttpContext.Response.ContentType = "application/json";
+        await ctx.HttpContext.Response.WriteAsync(
+            "{\"message\":\"Muitas tentativas. Aguarde um minuto.\"}", ct);
+    };
 });
 
 // Atrás do Traefik/Dokploy: usar o IP real do cliente (X-Forwarded-For).
@@ -60,6 +89,47 @@ builder.Services.AddCacheDependencyInjection(builder.Configuration);
 builder.Services.AddEfDependencyInjection(builder.Configuration);
 builder.Services.AddHttpDependencyInjection(builder.Configuration);
 builder.Services.AddApplicationDependencyInjection();
+
+// ---- Autenticação (JWT Bearer) -------------------------------------------
+//
+// Bearer e não cookie: o CORS já libera qualquer header, então o `Authorization`
+// passa sem mudança nenhuma de política. Cookie exigiria `AllowCredentials()`
+// aqui e `credentials: "include"` em todo call site do app.
+var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+if (!args.Contains("seed"))
+{
+    // A validação é no BOOT, não no primeiro login. Uma chave curta só estoura
+    // quando alguém tenta entrar — a API fica "saudável" e o login inteiro cai,
+    // que é exatamente como isso passou despercebido num projeto irmão.
+    if (Encoding.UTF8.GetByteCount(jwt.SigningKey) < JwtOptions.MinimoDeBytes)
+    {
+        Console.Error.WriteLine(
+            $"ERRO: Jwt__SigningKey precisa de pelo menos {JwtOptions.MinimoDeBytes} bytes " +
+            $"(tem {Encoding.UTF8.GetByteCount(jwt.SigningKey)}). Gere uma com " +
+            "`openssl rand -base64 48` e defina no ambiente. A API não sobe sem isso.");
+        return 1;
+    }
+}
+builder.Services.AddSingleton(jwt);
+builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwt.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwt.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)),
+            ValidateLifetime = true,
+            // Sem a tolerância padrão de 5 min: o token já é curto.
+            ClockSkew = TimeSpan.FromSeconds(30),
+        };
+    });
+builder.Services.AddAuthorization();
 
 var origins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
     ?? ["http://localhost:5173"];
@@ -100,8 +170,20 @@ if (app.Environment.IsDevelopment())
 }
 app.UseCors();
 app.UseRateLimiter();
+// Autenticação ANTES do output cache: uma resposta 401 não pode ser guardada e
+// servida depois para quem tem token válido.
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseOutputCache();
 app.MapControllers();
+
+// Admin inicial. Sem ele, uma base zerada tranca: todo cadastro nasce pendente
+// e só um admin aprova. Idempotente — não mexe em quem já existe.
+using (var scope = app.Services.CreateScope())
+{
+    await scope.ServiceProvider.GetRequiredService<IAuthService>().GarantirAdminInicialAsync(
+        app.Configuration["Admin:Email"], app.Configuration["Admin:Senha"]);
+}
 
 app.Run();
 return 0;

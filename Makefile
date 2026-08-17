@@ -6,17 +6,26 @@
 #   make dev-up / dev-down
 
 FRONT ?= ../the-decrypter
-DATA_SRC := $(FRONT)/public/data
 DATA_DST := seed-data
-JSONS := municipios.json streets.json ceps.json
+JSONS := municipios.json streets.json ceps.json postes.json airports.json
+
+# Os datasets estão migrando de `public/data` (servido ao navegador) para
+# `seed-data` (só fonte de seed). Procuramos nos dois: enquanto a migração não
+# fecha, `postes.json` já está no novo e o resto ainda no antigo — e um `cp` de
+# caminho fixo quebraria todo deploy no dia da mudança.
 
 .PHONY: sync-data validate-data build dev-up dev-down
 
 sync-data:
-	@test -d "$(DATA_SRC)" || (echo "ERRO: $(DATA_SRC) não existe. Clone the-decrypter ou use FRONT=..." && exit 1)
+	@test -d "$(FRONT)" || (echo "ERRO: $(FRONT) não existe. Clone the-decrypter ou use FRONT=..." && exit 1)
 	@for f in $(JSONS); do \
-	  echo "→ $$f"; \
-	  cp "$(DATA_SRC)/$$f" "$(DATA_DST)/$$f"; \
+	  src=""; \
+	  for d in "$(FRONT)/seed-data" "$(FRONT)/public/data"; do \
+	    if [ -f "$$d/$$f" ]; then src="$$d/$$f"; break; fi; \
+	  done; \
+	  test -n "$$src" || (echo "ERRO: $$f não achado em seed-data/ nem em public/data/" && exit 1); \
+	  echo "→ $$f  ($$src)"; \
+	  cp "$$src" "$(DATA_DST)/$$f"; \
 	done
 
 validate-data:
@@ -24,7 +33,9 @@ validate-data:
 	@for f in $(JSONS); do \
 	  test -s "$(DATA_DST)/$$f" || (echo "ERRO: $(DATA_DST)/$$f vazio ou ausente" && exit 1); \
 	  jq -e . "$(DATA_DST)/$$f" >/dev/null || (echo "ERRO: $(DATA_DST)/$$f não é JSON válido" && exit 1); \
-	  echo "✓ $$f válido"; \
+	  n=$$(jq -r '.rows | length' "$(DATA_DST)/$$f"); \
+	  test "$$n" -gt 90 || (echo "ERRO: $(DATA_DST)/$$f só tem $$n linhas — truncado?" && exit 1); \
+	  echo "✓ $$f válido ($$n linhas)"; \
 	done
 
 build: sync-data validate-data

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using TheDecrypter.Domain.Repositories;
@@ -6,6 +7,7 @@ namespace TheDecrypter.Api.Controllers;
 
 [ApiController]
 [Route("api/municipio")]
+[Authorize]
 [OutputCache(PolicyName = "lookups")]
 public class MunicipioController(IMunicipioRepository repo) : ControllerBase
 {

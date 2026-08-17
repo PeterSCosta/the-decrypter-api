@@ -10,9 +10,16 @@ services:
     environment:
       POSTGRES_DB: decrypter
       POSTGRES_USER: postgres
-      # Auth por confiança na rede interna isolada (internal: true, dados públicos,
-      # PG não compartilhado). O WARNING do trust é esperado e seguro aqui.
-      POSTGRES_HOST_AUTH_METHOD: trust
+      # A justificativa antiga do `trust` era "dados públicos numa rede isolada".
+      # Ela caiu quando `app_user` passou a guardar hash de senha: qualquer
+      # contêiner que entre na decrypter-internal lê a tabela sem credencial.
+      #
+      # Defina POSTGRES_PASSWORD no Dokploy para ligar a senha. ATENÇÃO: em
+      # volume JÁ INICIALIZADO isto não basta — o `pg_hba.conf` mora dentro do
+      # volume e continua em `trust`. Ver DEPLOY.md §"Ligar senha no Postgres"
+      # para o passo manual, que é uma linha de SQL e um reload.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-trust}
     volumes:
       - decrypter-pgdata-v3:/var/lib/postgresql/data
       - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
@@ -50,11 +57,16 @@ services:
         psql -v ON_ERROR_STOP=1 -f /app/db/schema.sql
         dotnet TheDecrypter.Api.dll seed --data /app/data
     environment:
-      ConnectionStrings__DecrypterDB: "Host=decrypter-db;Port=5432;Database=decrypter;Username=postgres"
+      ConnectionStrings__DecrypterDB: "Host=decrypter-db;Port=5432;Database=decrypter;Username=postgres;Password=${POSTGRES_PASSWORD:-}"
       PGHOST: decrypter-db
       PGPORT: "5432"
       PGUSER: postgres
       PGDATABASE: decrypter
+      # O `psql` do sidecar ignora a connection string do .NET.
+      PGPASSWORD: ${POSTGRES_PASSWORD:-}
+      # Sem Jwt__SigningKey de propósito: o modo seed roda o schema e sai, e a
+      # validação da chave no Program.cs pula quando o argumento é `seed`. Se um
+      # dia ela passar a valer para todos os modos, o seed quebra aqui primeiro.
     depends_on:
       decrypter-db: { condition: service_healthy }
     networks: [decrypter-internal]
@@ -66,7 +78,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_HTTP_PORTS: "8080"
-      ConnectionStrings__DecrypterDB: "Host=decrypter-db;Port=5432;Database=decrypter;Username=postgres"
+      ConnectionStrings__DecrypterDB: "Host=decrypter-db;Port=5432;Database=decrypter;Username=postgres;Password=${POSTGRES_PASSWORD:-}"
       ConnectionStrings__Redis: "decrypter-cache:6379"
       AllowedOrigins__0: ${ALLOWED_ORIGIN:-https://arromba.thelogiclab.com.br}
       Gateways__Cnpj__BaseUrl: ${CNPJ_BASE_URL:-https://brasilapi.com.br/api/}
@@ -77,6 +89,15 @@ services:
       # Ex.: https://traccar.thelogiclab.com.br  +  token read-only do Traccar.
       Traccar__BaseUrl: ${TRACCAR_BASE_URL:-}
       Traccar__Token: ${TRACCAR_TOKEN:-}
+      # Login. A API SE RECUSA A SUBIR com a chave abaixo de 32 bytes — é de
+      # propósito: chave curta só estoura no primeiro login, com a API
+      # aparentemente saudável. Gere com `openssl rand -base64 48`.
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?defina JWT_SIGNING_KEY}
+      Jwt__HorasDeValidade: ${JWT_HORAS:-12}
+      # Admin inicial, criado no boot se ainda não existir. Sem ele a base
+      # zerada trava: todo cadastro nasce pendente e só um admin aprova.
+      Admin__Email: ${ADMIN_EMAIL:-}
+      Admin__Senha: ${ADMIN_SENHA:-}
     depends_on:
       decrypter-db: { condition: service_healthy }
       decrypter-cache: { condition: service_healthy }
