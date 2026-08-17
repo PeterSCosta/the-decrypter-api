@@ -39,6 +39,14 @@ public static class HttpDependencyInjection
         services.AddHttpClient<IWhat3WordsGateway, What3WordsGateway>(c => Configure(c, w3w))
             .AddResilienceHandler("w3w", b => AddResilience(b, generalRate));
 
+        // Timeout maior que os demais: aqui sobem centenas de KB de áudio, e o
+        // reconhecimento do outro lado não é instantâneo.
+        services.AddHttpClient<IMusicGateway, AuddGateway>(c =>
+        {
+            Configure(c, configuration["Gateways:Audd:BaseUrl"] ?? "https://api.audd.io/");
+            c.Timeout = TimeSpan.FromSeconds(45);
+        }).AddResilienceHandler("audd", b => AddResilience(b, generalRate));
+
         services.AddHttpClient<IGeocodeGateway, NominatimGateway>(c =>
         {
             Configure(c, nominatim);

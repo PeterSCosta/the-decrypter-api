@@ -84,6 +84,12 @@ services:
       Gateways__Cnpj__BaseUrl: ${CNPJ_BASE_URL:-https://brasilapi.com.br/api/}
       Gateways__Cnpj__RatePerMinute: ${CNPJ_RATE_PER_MINUTE:-3}
       Gateways__What3Words__Key: ${W3W_API_KEY:-}
+      # Reconhecimento de música (audd.io). Vazio = o recurso aparece na tela e
+      # responde "não configurado", em vez de fingir que não reconheceu — são
+      # coisas diferentes e levam a ações opostas. A cota gratuita é de ~300
+      # requisições que NÃO renovam, e é por isso que quem escolhe o trecho a
+      # enviar é a pessoa, não uma varredura automática.
+      Gateways__Audd__Token: ${AUDD_TOKEN:-}
       Gateways__Nominatim__UserAgent: ${NOMINATIM_USER_AGENT:-TheDecrypter/1.0 (+https://arromba.thelogiclab.com.br)}
       # Frota (Traccar self-hosted). Vazio = aba Frota desativada (lista vazia).
       # Ex.: https://traccar.thelogiclab.com.br  +  token read-only do Traccar.
