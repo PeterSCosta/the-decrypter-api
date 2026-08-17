@@ -25,6 +25,7 @@ public static class EfDependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPosteRepository, PosteRepository>();
         services.AddScoped<IAirportRepository, AirportRepository>();
+        services.AddScoped<ICidRepository, CidRepository>();
         return services;
     }
 }

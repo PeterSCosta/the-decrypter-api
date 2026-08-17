@@ -12,6 +12,8 @@ public enum Consultas
     RuaOuBairro = 16,
     CepCuringa = 32,
     Aeroporto = 64,
+    CidCodigo = 128,
+    CidNome = 256,
 }
 
 /// <summary>
@@ -42,6 +44,11 @@ public static class LookupShape
         if (texto.Any(ch => "xX*_?".Contains(ch)) && CepPattern.Traduzir(texto) is not null)
             return Consultas.CepCuringa;
 
+        // CID-10 antes das faixas por dígito: um código é letra + 2 ou 3
+        // dígitos, com ou sem ponto, e não cai em nenhum dos ramos abaixo (uma
+        // letra só não chega ao mínimo de três do ramo de nome).
+        if (Search.CidCodigo.Normalizar(texto) is not null) c |= Consultas.CidCodigo;
+
         if (soDigitos)
         {
             // 8 dígitos: CEP. Também é o comprimento de um ISPB do PIX, mas esse
@@ -58,6 +65,10 @@ public static class LookupShape
             c |= Consultas.RuaOuBairro;
             // 3 letras = IATA (GRU), 4 = ICAO (SBGR). Só letras, sem espaço.
             if (texto.Length is 3 or 4 && texto.All(char.IsLetter)) c |= Consultas.Aeroporto;
+            // Doença pelo NOME: a metade que a CID responde e o código não —
+            // "qual o código da dengue". Só texto sem dígito, porque o número no
+            // meio já é sinal de que aquilo é identificador de outra coisa.
+            if (texto.Length >= 4 && !texto.Any(char.IsDigit)) c |= Consultas.CidNome;
         }
 
         return c;

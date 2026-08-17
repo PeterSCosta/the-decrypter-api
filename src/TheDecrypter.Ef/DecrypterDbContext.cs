@@ -13,6 +13,7 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
     public DbSet<Airport> Airports => Set<Airport>();
     public DbSet<StreetRol> StreetRol => Set<StreetRol>();
     public DbSet<Bridge> Bridges => Set<Bridge>();
+    public DbSet<Cid> Cids => Set<Cid>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -101,6 +102,20 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
             e.Property(x => x.Material).HasColumnName("material");
             e.Property(x => x.Transpoe).HasColumnName("transpoe");
             e.Property(x => x.Bairros).HasColumnName("bairros");
+        });
+
+        b.Entity<Cid>(e =>
+        {
+            e.ToTable("cid");
+            e.HasKey(x => x.Codigo);
+            e.Property(x => x.Codigo).HasColumnName("codigo").HasMaxLength(4);
+            e.Property(x => x.Descricao).HasColumnName("descricao");
+            e.Property(x => x.Capitulo).HasColumnName("capitulo");
+            e.Property(x => x.CapituloDesc).HasColumnName("capitulo_desc");
+            e.Property(x => x.GrupoDesc).HasColumnName("grupo_desc");
+            e.Property(x => x.Classif).HasColumnName("classif").HasMaxLength(1);
+            e.Property(x => x.Sexo).HasColumnName("sexo").HasMaxLength(1);
+            e.Property(x => x.NaoObito).HasColumnName("nao_obito");
         });
 
         b.Entity<Airport>(e =>

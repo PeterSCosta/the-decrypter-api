@@ -27,7 +27,8 @@ public class LookupController(
     ICepRepository ceps,
     IMunicipioRepository municipios,
     IPosteRepository postes,
-    IAirportRepository aeroportos) : ControllerBase
+    IAirportRepository aeroportos,
+    ICidRepository cids) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Consultar([FromQuery] string q, CancellationToken ct)
@@ -73,6 +74,17 @@ public class LookupController(
         if (quais.HasFlag(Consultas.Aeroporto))
             r.Aeroporto = await aeroportos.ByCodeAsync(termo, ct);
 
+        if (quais.HasFlag(Consultas.CidCodigo))
+            r.Cid = await cids.ByCodigoAsync(termo, ct);
+
+        if (quais.HasFlag(Consultas.CidNome))
+        {
+            // Poucos: é sugestão ("você quis dizer"), não listagem. Quem quer a
+            // tabela inteira tem a Biblioteca, que pagina.
+            var achados = await cids.SearchAsync(termo, 5, ct);
+            if (achados.Count > 0) r.Cids = achados;
+        }
+
         if (quais.HasFlag(Consultas.CepCuringa))
         {
             var (hits, total) = await ceps.SearchWildcardAsync(termo, 12, ct);
@@ -94,4 +106,6 @@ public class LookupResposta(string q)
     public object? Postes { get; set; }
     public object? CepCuringa { get; set; }
     public object? Aeroporto { get; set; }
+    public object? Cid { get; set; }
+    public object? Cids { get; set; }
 }

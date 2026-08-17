@@ -33,6 +33,7 @@ public static class Seeder
         await SeedTable(db, log, "airport", Path.Combine(dataDir, "airports.json"), SeedAirports);
         await SeedTable(db, log, "street_rol", Path.Combine(dataDir, "streets.json"), SeedStreetRol);
         await SeedTable(db, log, "bridge", Path.Combine(dataDir, "bridges.json"), SeedBridges);
+        await SeedTable(db, log, "cid", Path.Combine(dataDir, "cid10.json"), SeedCid);
 
         log.LogInformation("Seed concluído.");
     }
@@ -46,7 +47,7 @@ public static class Seeder
     // Allow-list: TRUNCATE não aceita parâmetro para identificador, então o nome
     // entra direto no SQL. Validar contra esta lista bloqueia injeção via parâmetro.
     private static readonly HashSet<string> AllowedTables =
-        ["municipio", "street", "cep", "poste", "airport", "street_rol", "bridge"];
+        ["municipio", "street", "cep", "poste", "airport", "street_rol", "bridge", "cid"];
 
     private static async Task SeedTable(
         DecrypterDbContext db, ILogger log, string tableName, string path,
@@ -407,6 +408,63 @@ public static class Seeder
     }
 
     /// <summary>Pontes nomeadas. Listas viram texto juntado — é o que se lê.</summary>
+    /// <summary>
+    /// CID-10 do DATASUS. O JSON é posicional, com capítulo e grupo em
+    /// dicionários à parte: repetir "Doenças do aparelho circulatório" em cada
+    /// uma das 14 mil linhas dobraria o arquivo para não dizer nada de novo.
+    ///
+    /// Na tabela eles voltam desnormalizados de propósito: são 22 capítulos e
+    /// 275 grupos, e uma junção por linha custaria mais que os bytes que a
+    /// normalização pouparia numa tabela que só se lê.
+    /// </summary>
+    private static async Task<int> SeedCid(DecrypterDbContext db, ILogger log, string path)
+    {
+        using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+        var raiz = doc.RootElement;
+
+        // [[num, descrição], …] — o número é o do capítulo (1..22), não o índice.
+        var capitulos = raiz.GetProperty("capitulos").EnumerateArray()
+            .ToDictionary(c => c[0].GetInt32(), c => c[1].GetString() ?? "");
+        var grupos = raiz.GetProperty("grupos").EnumerateArray()
+            .Select(g => g.GetString() ?? "").ToArray();
+
+        var chunk = new List<Cid>(5000);
+        var total = 0;
+        foreach (var r in raiz.GetProperty("rows").EnumerateArray())
+        {
+            var cap = r[2].GetInt32();
+            var iGrupo = r[3].GetInt32();
+            chunk.Add(new Cid
+            {
+                Codigo = r[0].GetString() ?? "",
+                Descricao = r[1].GetString() ?? "",
+                Capitulo = (short)cap,
+                CapituloDesc = capitulos.GetValueOrDefault(cap, ""),
+                // -1 = código sem grupo. Não acontece na base de 2008, mas um
+                // capítulo novo sem bloco definido cairia aqui em vez de estourar.
+                GrupoDesc = iGrupo >= 0 && iGrupo < grupos.Length ? grupos[iGrupo] : null,
+                Classif = NullIfEmpty(r[4].GetString()),
+                Sexo = NullIfEmpty(r[5].GetString()),
+                NaoObito = r[6].GetInt32() == 1,
+            });
+            if (chunk.Count >= 5000)
+            {
+                db.Cids.AddRange(chunk);
+                await db.SaveChangesAsync();
+                db.ChangeTracker.Clear();
+                total += chunk.Count;
+                chunk.Clear();
+            }
+        }
+        if (chunk.Count > 0)
+        {
+            db.Cids.AddRange(chunk);
+            await db.SaveChangesAsync();
+            total += chunk.Count;
+        }
+        return total;
+    }
+
     private static async Task<int> SeedBridges(DecrypterDbContext db, ILogger log, string path)
     {
         using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(path));

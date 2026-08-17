@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
+using TheDecrypter.Domain.Search;
 using TheDecrypter.Ef;
 
 namespace TheDecrypter.Api.Controllers;
@@ -49,6 +50,8 @@ public class LibraryController(DecrypterDbContext db) : ControllerBase
                 "OpenFlights", await db.Airports.CountAsync(ct), true),
             new("bridge", "Pontes, passarelas e viadutos", "nome ou apelido → lei que nomeou, coordenada, o que transpõe",
                 "Câmara Municipal de Blumenau + OpenStreetMap", await db.Bridges.CountAsync(ct), true),
+            new("cid", "CID-10 (doenças e agravos)", "código (A00.0) ou nome da doença → descrição, capítulo, grupo",
+                "DATASUS — CID-10 V2008", await db.Cids.CountAsync(ct), true),
         };
         return Ok(new { total = bases.Count, hits = bases });
     }
@@ -111,6 +114,26 @@ public class LibraryController(DecrypterDbContext db) : ControllerBase
                         EF.Functions.ILike(b.Nome, like) || EF.Functions.ILike(b.Apelidos!, like));
                 var total = await query.CountAsync(ct);
                 var hits = await query.OrderBy(b => b.Nome).Skip(salto).Take(n).ToListAsync(ct);
+                return Ok(new { total, page, size = n, hits });
+            }
+            case "cid":
+            {
+                var query = db.Cids.AsQueryable();
+                if (termo.Length > 0)
+                {
+                    // A pessoa pode digitar o código ou o nome, e o filtro é um
+                    // campo só: se o termo TEM forma de código, é código —
+                    // "A00" como texto acharia "Anemia" e mais mil.
+                    var codigo = CidCodigo.Normalizar(termo);
+                    query = codigo is not null
+                        ? query.Where(x => EF.Functions.Like(x.Codigo, $"{codigo}%"))
+                        // Sem acento dos dois lados: a base de 2008 escreve
+                        // "Diarréia", e quem procura digita "diarreia".
+                        : query.Where(x => EF.Functions.ILike(
+                            EF.Functions.Unaccent(x.Descricao), EF.Functions.Unaccent(like)));
+                }
+                var total = await query.CountAsync(ct);
+                var hits = await query.OrderBy(x => x.Codigo).Skip(salto).Take(n).ToListAsync(ct);
                 return Ok(new { total, page, size = n, hits });
             }
             case "municipio":

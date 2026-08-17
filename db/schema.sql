@@ -214,3 +214,29 @@ ALTER TABLE app_user ADD COLUMN IF NOT EXISTS approved_by   uuid;
 -- serviço normaliza para minúscula na escrita; este índice é a rede de segurança
 -- para qualquer caminho que esqueça de normalizar.
 CREATE UNIQUE INDEX IF NOT EXISTS ux_app_user_email_lower ON app_user (lower(email));
+
+-- ========== cid (CID-10, DATASUS V2008) ==========
+-- 14.233 códigos: 2.045 categorias (A00) + 12.188 subcategorias (A00.0).
+--
+-- `codigo` guarda a forma NORMALIZADA, sem ponto ("A000"), porque é a única que
+-- os dois formatos do mundo real colapsam: o prontuário escreve "A00.0" e a
+-- base do SUS escreve "A000". O ponto é reposto na exibição, e não no dado.
+CREATE TABLE IF NOT EXISTS cid (
+  codigo        varchar(4) PRIMARY KEY,
+  descricao     text NOT NULL,
+  capitulo      smallint NOT NULL,       -- 1..22
+  capitulo_desc text NOT NULL,
+  grupo_desc    text,
+  -- Dupla classificação da CID: `+` (adaga) é a etiologia, `*` (asterisco) é a
+  -- manifestação. Vazio na imensa maioria.
+  classif       varchar(1),
+  -- Restrição de sexo do código ("F"/"M"), quando existe.
+  sexo          varchar(1),
+  -- Verdadeiro quando o código NÃO pode ser causa básica de óbito.
+  nao_obito     boolean NOT NULL DEFAULT false
+);
+-- A busca por doença é por NOME, e o nome vem acentuado e no meio da frase
+-- ("diabetes" está em "Diabetes mellitus não especificado"): trigrama sobre o
+-- texto sem acento é o que responde as duas coisas.
+CREATE INDEX IF NOT EXISTS ix_cid_descricao_trgm
+  ON cid USING gin (immutable_unaccent(descricao) gin_trgm_ops);
