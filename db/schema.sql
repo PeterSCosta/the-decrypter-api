@@ -264,3 +264,38 @@ CREATE TABLE IF NOT EXISTS cid (
 -- texto sem acento é o que responde as duas coisas.
 CREATE INDEX IF NOT EXISTS ix_cid_descricao_trgm
   ON cid USING gin (immutable_unaccent(descricao) gin_trgm_ops);
+
+-- ========== lote_blumenau (cadastro imobiliário da Prefeitura) ==========
+-- 84.539 lotes do geoportal de Blumenau. A COORDENADA é o centroide do lote,
+-- não a porta do imóvel — está escrito aqui porque a diferença importa numa
+-- prova que mande "ir até o endereço".
+--
+-- Duas grafias do MESMO número convivem, e as duas são chave de busca: o carnê
+-- do IPTU traz uma, o geoportal traz a outra, e quem digita não sabe disso.
+--   inscricao = 15 dígitos com zeros à esquerda  → 412400200002000
+--   iq        = grupos com hífen, sem zeros      → 4-1-24-20-2
+-- MEDIDO na extração: das 84.539 linhas, 48 vêm com a inscrição VAZIA (lote
+-- sem cadastro nesta camada) e 6 inscrições se repetem. A chave é sintética
+-- pelo mesmo motivo do `street_rol`: a Biblioteca tem de mostrar o acervo
+-- inteiro, e colapsar por inscrição jogaria 54 lotes reais fora em silêncio.
+CREATE TABLE IF NOT EXISTS lote_blumenau (
+  id          integer PRIMARY KEY,
+  inscricao   varchar(15),
+  iq          text,
+  logradouro  text,
+  numero      text,
+  bairro      text,
+  cep         varchar(8),
+  lat         double precision,
+  lng         double precision,
+  area_m2     integer
+);
+-- O IQ tem 13 vazios na base de origem, então o índice é parcial — e não é
+-- único: a mesma quadra/lote pode ter mais de uma unidade.
+CREATE INDEX IF NOT EXISTS ix_lote_blumenau_inscricao
+  ON lote_blumenau (inscricao) WHERE inscricao IS NOT NULL AND inscricao <> '';
+CREATE INDEX IF NOT EXISTS ix_lote_blumenau_iq
+  ON lote_blumenau (iq) WHERE iq IS NOT NULL AND iq <> '';
+-- Busca por rua na Biblioteca, sem acento.
+CREATE INDEX IF NOT EXISTS ix_lote_blumenau_logradouro_trgm
+  ON lote_blumenau USING gin (immutable_unaccent(logradouro) gin_trgm_ops);

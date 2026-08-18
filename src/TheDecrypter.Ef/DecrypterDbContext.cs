@@ -14,6 +14,7 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
     public DbSet<StreetRol> StreetRol => Set<StreetRol>();
     public DbSet<Bridge> Bridges => Set<Bridge>();
     public DbSet<Cid> Cids => Set<Cid>();
+    public DbSet<LoteBlumenau> LotesBlumenau => Set<LoteBlumenau>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -102,6 +103,22 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
             e.Property(x => x.Material).HasColumnName("material");
             e.Property(x => x.Transpoe).HasColumnName("transpoe");
             e.Property(x => x.Bairros).HasColumnName("bairros");
+        });
+
+        b.Entity<LoteBlumenau>(e =>
+        {
+            e.ToTable("lote_blumenau");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
+            e.Property(x => x.Inscricao).HasColumnName("inscricao").HasMaxLength(15);
+            e.Property(x => x.Iq).HasColumnName("iq");
+            e.Property(x => x.Logradouro).HasColumnName("logradouro");
+            e.Property(x => x.Numero).HasColumnName("numero");
+            e.Property(x => x.Bairro).HasColumnName("bairro");
+            e.Property(x => x.Cep).HasColumnName("cep").HasMaxLength(8);
+            e.Property(x => x.Lat).HasColumnName("lat");
+            e.Property(x => x.Lng).HasColumnName("lng");
+            e.Property(x => x.AreaM2).HasColumnName("area_m2");
         });
 
         b.Entity<Cid>(e =>

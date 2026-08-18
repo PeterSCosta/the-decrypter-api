@@ -28,7 +28,8 @@ public class LookupController(
     IMunicipioRepository municipios,
     IPosteRepository postes,
     IAirportRepository aeroportos,
-    ICidRepository cids) : ControllerBase
+    ICidRepository cids,
+    ILoteBlumenauRepository lotes) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Consultar([FromQuery] string q, CancellationToken ct)
@@ -85,6 +86,9 @@ public class LookupController(
             if (achados.Count > 0) r.Cids = achados;
         }
 
+        if (quais.HasFlag(Consultas.LoteBlumenau))
+            r.Lote = await lotes.ByInscricaoAsync(termo, ct);
+
         if (quais.HasFlag(Consultas.CepCuringa))
         {
             var (hits, total) = await ceps.SearchWildcardAsync(termo, 12, ct);
@@ -108,4 +112,5 @@ public class LookupResposta(string q)
     public object? Aeroporto { get; set; }
     public object? Cid { get; set; }
     public object? Cids { get; set; }
+    public object? Lote { get; set; }
 }

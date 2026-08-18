@@ -50,6 +50,9 @@ public class LibraryController(DecrypterDbContext db) : ControllerBase
                 "OpenFlights", await db.Airports.CountAsync(ct), true),
             new("bridge", "Pontes, passarelas e viadutos", "nome ou apelido → lei que nomeou, coordenada, o que transpõe",
                 "Câmara Municipal de Blumenau + OpenStreetMap", await db.Bridges.CountAsync(ct), true),
+            new("lote-blumenau", "Cadastro imobiliário de Blumenau",
+                "inscrição imobiliária → endereço, bairro, CEP, área e coordenada do lote",
+                "Prefeitura de Blumenau — geoportal", await db.LotesBlumenau.CountAsync(ct), true),
             new("cid", "CID-10 (doenças e agravos)", "código (A00.0) ou nome da doença → descrição, capítulo, grupo",
                 "DATASUS — CID-10 V2008", await db.Cids.CountAsync(ct), true),
         };
@@ -114,6 +117,24 @@ public class LibraryController(DecrypterDbContext db) : ControllerBase
                         EF.Functions.ILike(b.Nome, like) || EF.Functions.ILike(b.Apelidos!, like));
                 var total = await query.CountAsync(ct);
                 var hits = await query.OrderBy(b => b.Nome).Skip(salto).Take(n).ToListAsync(ct);
+                return Ok(new { total, page, size = n, hits });
+            }
+            case "lote-blumenau":
+            {
+                var query = db.LotesBlumenau.AsQueryable();
+                if (termo.Length > 0)
+                {
+                    // Igual ao CID: se o termo TEM forma de inscrição, é
+                    // inscrição — senão é nome de rua. Um número solto buscado
+                    // como texto acharia "Rua 25" e mais mil.
+                    var f = InscricaoBlumenau.Normalizar(termo);
+                    query = f is not null
+                        ? query.Where(x => x.Inscricao == f.Inscricao || x.Iq == f.Iq)
+                        : query.Where(x => EF.Functions.ILike(
+                            EF.Functions.Unaccent(x.Logradouro!), EF.Functions.Unaccent(like)));
+                }
+                var total = await query.CountAsync(ct);
+                var hits = await query.OrderBy(x => x.Id).Skip(salto).Take(n).ToListAsync(ct);
                 return Ok(new { total, page, size = n, hits });
             }
             case "cid":

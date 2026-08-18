@@ -34,6 +34,8 @@ public static class Seeder
         await SeedTable(db, log, "street_rol", Path.Combine(dataDir, "streets.json"), SeedStreetRol);
         await SeedTable(db, log, "bridge", Path.Combine(dataDir, "bridges.json"), SeedBridges);
         await SeedTable(db, log, "cid", Path.Combine(dataDir, "cid10.json"), SeedCid);
+        await SeedTable(
+            db, log, "lote_blumenau", Path.Combine(dataDir, "lotes-blumenau.json"), SeedLotes);
 
         log.LogInformation("Seed concluído.");
     }
@@ -47,7 +49,7 @@ public static class Seeder
     // Allow-list: TRUNCATE não aceita parâmetro para identificador, então o nome
     // entra direto no SQL. Validar contra esta lista bloqueia injeção via parâmetro.
     private static readonly HashSet<string> AllowedTables =
-        ["municipio", "street", "cep", "poste", "airport", "street_rol", "bridge", "cid"];
+        ["municipio", "street", "cep", "poste", "airport", "street_rol", "bridge", "cid", "lote_blumenau"];
 
     private static async Task SeedTable(
         DecrypterDbContext db, ILogger log, string tableName, string path,
@@ -459,6 +461,59 @@ public static class Seeder
         if (chunk.Count > 0)
         {
             db.Cids.AddRange(chunk);
+            await db.SaveChangesAsync();
+            total += chunk.Count;
+        }
+        return total;
+    }
+
+    /// <summary>
+    /// Lotes de Blumenau. Posicional com dicionário de rua e bairro — 84.539
+    /// linhas repetem 3.654 nomes de rua e 35 bairros, e repetir o texto em
+    /// cada uma dobraria o arquivo para não dizer nada de novo.
+    /// </summary>
+    private static async Task<int> SeedLotes(DecrypterDbContext db, ILogger log, string path)
+    {
+        using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+        var raiz = doc.RootElement;
+        var ruas = raiz.GetProperty("ruas").EnumerateArray().Select(x => x.GetString() ?? "").ToArray();
+        var bairros = raiz.GetProperty("bairros").EnumerateArray().Select(x => x.GetString() ?? "").ToArray();
+
+        static string? Nome(string[] tabela, int i) =>
+            i >= 0 && i < tabela.Length && tabela[i].Length > 0 ? tabela[i] : null;
+
+        var chunk = new List<LoteBlumenau>(5000);
+        var total = 0;
+        var id = 0;
+        foreach (var r in raiz.GetProperty("rows").EnumerateArray())
+        {
+            chunk.Add(new LoteBlumenau
+            {
+                Id = ++id,
+                Inscricao = NullIfEmpty(r[0].GetString()),
+                Iq = NullIfEmpty(r[1].GetString()),
+                Logradouro = Nome(ruas, r[2].GetInt32()),
+                Numero = NullIfEmpty(r[3].GetString()),
+                Bairro = Nome(bairros, r[4].GetInt32()),
+                Cep = NullIfEmpty(r[5].GetString()),
+                // 0 é o "sem geometria" do gerador — vira NULL, não um ponto no
+                // golfo da Guiné.
+                Lat = r[6].GetDouble() is var la && la != 0 ? la : null,
+                Lng = r[7].GetDouble() is var lo && lo != 0 ? lo : null,
+                AreaM2 = r[8].GetInt32(),
+            });
+            if (chunk.Count >= 5000)
+            {
+                db.LotesBlumenau.AddRange(chunk);
+                await db.SaveChangesAsync();
+                db.ChangeTracker.Clear();
+                total += chunk.Count;
+                chunk.Clear();
+            }
+        }
+        if (chunk.Count > 0)
+        {
+            db.LotesBlumenau.AddRange(chunk);
             await db.SaveChangesAsync();
             total += chunk.Count;
         }

@@ -26,6 +26,7 @@ COPY seed-data/postes.json     ./data/postes.json
 COPY seed-data/airports.json   ./data/airports.json
 COPY seed-data/bridges.json    ./data/bridges.json
 COPY seed-data/cid10.json      ./data/cid10.json
+COPY seed-data/lotes-blumenau.json ./data/lotes-blumenau.json
 
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "TheDecrypter.Api.dll"]

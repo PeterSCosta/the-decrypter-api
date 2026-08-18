@@ -26,6 +26,7 @@ public static class EfDependencyInjection
         services.AddScoped<IPosteRepository, PosteRepository>();
         services.AddScoped<IAirportRepository, AirportRepository>();
         services.AddScoped<ICidRepository, CidRepository>();
+        services.AddScoped<ILoteBlumenauRepository, LoteBlumenauRepository>();
         return services;
     }
 }

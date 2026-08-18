@@ -14,6 +14,7 @@ public enum Consultas
     Aeroporto = 64,
     CidCodigo = 128,
     CidNome = 256,
+    LoteBlumenau = 512,
 }
 
 /// <summary>
@@ -48,6 +49,12 @@ public static class LookupShape
         // dígitos, com ou sem ponto, e não cai em nenhum dos ramos abaixo (uma
         // letra só não chega ao mínimo de três do ramo de nome).
         if (Search.CidCodigo.Normalizar(texto) is not null) c |= Consultas.CidCodigo;
+
+        // Inscrição imobiliária de Blumenau: 15 dígitos, 12 dígitos, ou os
+        // grupos pontuados do carnê de IPTU. A forma pontuada é assinatura; a
+        // de 15 dígitos crus é longa o bastante para não colidir com nada que a
+        // bancada já leia (CEP tem 8, IBGE tem 7, telefone tem 11).
+        if (InscricaoBlumenau.Normalizar(texto) is not null) c |= Consultas.LoteBlumenau;
 
         if (soDigitos)
         {
