@@ -35,9 +35,11 @@ public class AuthController(IAuthService auth, ITokenService tokens) : Controlle
             return BadRequest(new { message = "Escolha um apelido para entrar." });
         try
         {
-            // `Admin: true` vindo do corpo é ignorado aqui: só o painel de admin
-            // cria administrador. Sem isso, qualquer um se promoveria no cadastro.
-            var criado = await auth.CadastrarAsync(novo with { Admin = false }, ct);
+            // `Admin` e `Aprovado` vindos do corpo são ignorados aqui: os dois
+            // são privilégio, e quem se cadastra sozinho não se promove nem se
+            // libera. Sem o segundo, bastaria mandar `"aprovado": true` no JSON
+            // para pular a fila inteira — a única barreira que este produto tem.
+            var criado = await auth.CadastrarAsync(novo with { Admin = false, Aprovado = false }, ct);
             return Ok(new
             {
                 usuario = criado,

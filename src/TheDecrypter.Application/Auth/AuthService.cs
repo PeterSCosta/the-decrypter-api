@@ -128,10 +128,13 @@ public class AuthService(
             Email = email,
             DisplayName = NormalizaNome(novo.Nome),
             Role = novo.Admin ? UserRoles.Admin : UserRoles.User,
-            // Quem o admin cria já entra liberado; quem se cadastra sozinho espera.
-            Status = novo.Admin ? UserStatus.Aprovado : UserStatus.Pendente,
+            // Quem o admin cria já entra liberado; quem se cadastra sozinho
+            // espera. `Aprovado` é campo próprio porque o painel cria gente que
+            // NÃO é administrador — e antes essas contas nasciam pendentes, o
+            // que fazia "criei e mandei a senha" simplesmente não funcionar.
+            Status = novo.Admin || novo.Aprovado ? UserStatus.Aprovado : UserStatus.Pendente,
             CreatedAt = DateTimeOffset.UtcNow,
-            ApprovedAt = novo.Admin ? DateTimeOffset.UtcNow : null,
+            ApprovedAt = novo.Admin || novo.Aprovado ? DateTimeOffset.UtcNow : null,
         };
         user.PasswordHash = hasher.HashPassword(user, novo.Senha);
         await repo.AddAsync(user, ct);

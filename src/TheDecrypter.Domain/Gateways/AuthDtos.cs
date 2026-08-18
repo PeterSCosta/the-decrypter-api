@@ -25,7 +25,19 @@ public record NovoUsuarioDto(
     string? Apelido = null,
     string? Email = null,
     string? Nome = null,
-    bool Admin = false);
+    bool Admin = false,
+    /// <summary>
+    /// Nasce liberada, sem passar pela fila de aprovação.
+    ///
+    /// SEPARADO de `Admin` de propósito: antes, "já aprovado" era efeito
+    /// colateral de virar administrador, e por isso a conta que o admin criava
+    /// pelo painel — que é `admin: false` — nascia PENDENTE. O admin mandava a
+    /// senha para a pessoa e ela não conseguia entrar.
+    ///
+    /// Como os dois campos são privilégio, o cadastro público força os DOIS
+    /// como falsos: quem se cadastra sozinho não se aprova nem se promove.
+    /// </summary>
+    bool Aprovado = false);
 
 /// <summary>Usuário como o app o vê. Nunca carrega o hash da senha.</summary>
 public record UsuarioDto(

@@ -29,19 +29,20 @@ public class AdminUsersController(IAuthService auth) : ControllerBase
     }
 
     /// <summary>
-    /// Cria a conta pelo painel.
+    /// Cria a conta pelo painel — **já liberada**.
     ///
-    /// ATENÇÃO ao que ela NÃO faz: a conta nasce **pendente**, como qualquer
-    /// outra — só `Admin: true` sai aprovado, e o painel manda `admin: false`.
-    /// O comentário anterior dizia "cria já aprovado", e não era verdade; quem
-    /// cria pelo painel precisa clicar em Aprovar logo depois.
+    /// A fila de aprovação existe para o cadastro ABERTO, onde qualquer um
+    /// aparece. Aqui quem digitou o apelido e a senha foi o próprio
+    /// administrador, e mandar a conta para a fila dele mesmo era o defeito que
+    /// quebrava o caso real: o admin criava, passava a senha para a pessoa, e
+    /// ela batia em "Cadastro aguardando aprovação do administrador".
     /// </summary>
     [HttpPost]
     public async Task<IActionResult> Criar([FromBody] NovoUsuarioDto novo, CancellationToken ct)
     {
         try
         {
-            return Ok(await auth.CadastrarAsync(novo, ct));
+            return Ok(await auth.CadastrarAsync(novo with { Aprovado = true }, ct));
         }
         catch (ArgumentException e)
         {

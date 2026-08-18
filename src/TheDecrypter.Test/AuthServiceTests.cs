@@ -303,4 +303,43 @@ public class AuthServiceTests
         Assert.Equal(ResultadoLogin.Ok, r);
         Assert.Equal("admin@x.com", u!.Email);
     }
+
+    // ── QUEM O ADMIN CRIA JÁ ENTRA ────────────────────────────────────────────
+
+    [Fact]
+    public async Task conta_criada_pelo_painel_entra_na_hora()
+    {
+        // O caso que quebrou de verdade: o admin cria a conta, manda apelido e
+        // senha para a pessoa, e ela bate em "aguardando aprovação" — numa fila
+        // em que o próprio admin a colocou.
+        var (svc, _) = Montar();
+        var novo = await svc.CadastrarAsync(
+            new NovoUsuarioDto("senha12345", "colega", Aprovado: true));
+        Assert.Equal(UserStatus.Aprovado, novo.Situacao);
+        Assert.Equal(UserRoles.User, novo.Papel);
+
+        var (r, _) = await svc.AutenticarAsync(new CredenciaisDto("senha12345", "colega"));
+        Assert.Equal(ResultadoLogin.Ok, r);
+    }
+
+    [Fact]
+    public async Task aprovado_nao_promove_a_admin()
+    {
+        // Os dois campos são privilégio, mas privilégios DIFERENTES: liberar o
+        // acesso não pode dar o painel junto.
+        var (svc, _) = Montar();
+        var novo = await svc.CadastrarAsync(
+            new NovoUsuarioDto("senha12345", "colega", Aprovado: true));
+        Assert.Equal(UserRoles.User, novo.Papel);
+    }
+
+    [Fact]
+    public async Task cadastro_aberto_continua_nascendo_pendente()
+    {
+        // A fila é a única barreira deste produto: ela existe para quem chega
+        // sozinho, e continua valendo.
+        var (svc, _) = Montar();
+        var novo = await svc.CadastrarAsync(new NovoUsuarioDto("senha12345", "estranho"));
+        Assert.Equal(UserStatus.Pendente, novo.Situacao);
+    }
 }
