@@ -50,10 +50,17 @@ public static class LookupShape
         // letra só não chega ao mínimo de três do ramo de nome).
         if (Search.CidCodigo.Normalizar(texto) is not null) c |= Consultas.CidCodigo;
 
-        // Inscrição imobiliária de Blumenau: 15 dígitos, 12 dígitos, ou os
-        // grupos pontuados do carnê de IPTU. A forma pontuada é assinatura; a
-        // de 15 dígitos crus é longa o bastante para não colidir com nada que a
-        // bancada já leia (CEP tem 8, IBGE tem 7, telefone tem 11).
+        // Inscrição imobiliária de Blumenau: 15 dígitos, 12 dígitos, os grupos
+        // pontuados do carnê de IPTU, ou o IQ colado (5 a 10 dígitos) que sai
+        // de quem copia da tela do geoportal.
+        //
+        // A última forma PISA nos comprimentos que a bancada já usa — CEP tem
+        // 8, IBGE tem 7, plaqueta tem até 6. Medido antes de abrir a porta:
+        // dos 82.603 números do cadastro, ZERO são CEP existente; 81 são
+        // geocódigo do IBGE e 1.166 dos curtos são plaqueta de poste. Por isso
+        // aqui só se ABRE a consulta — quem decide se o card vale a pena é a
+        // pré-resolução (não achou, não emite) e o peso por comprimento no
+        // cliente, que mantém o lote de 7 dígitos abaixo do município.
         if (InscricaoBlumenau.Normalizar(texto) is not null) c |= Consultas.LoteBlumenau;
 
         if (soDigitos)

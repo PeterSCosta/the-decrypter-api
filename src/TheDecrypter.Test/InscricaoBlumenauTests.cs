@@ -73,6 +73,58 @@ public class InscricaoBlumenauTests
         var f = InscricaoBlumenau.Normalizar("401240000200002000");
         Assert.Null(f); // 18 dígitos não é forma
         var ok = InscricaoBlumenau.Normalizar("412400200002000");
-        Assert.DoesNotContain("-0", ok!.Iq);
+        Assert.DoesNotContain("-0", ok!.Iq!);
+    }
+
+    [Fact]
+    public void O_iq_colado_vira_todas_as_fatias_possiveis()
+    {
+        // O caso que veio da tela do geoportal: lá está escrito
+        // `4-1-24-16-28`, e quem copia à mão digita isto.
+        var f = InscricaoBlumenau.Normalizar("41241628");
+        Assert.Null(f!.Inscricao);
+        Assert.Null(f.Iq);
+        Assert.Contains("4-1-24-16-28", f.Candidatos);
+    }
+
+    [Fact]
+    public void A_fatia_ambigua_devolve_as_duas_leituras_reais()
+    {
+        // MEDIDO na base: as duas existem, e é por isso que a escolha não pode
+        // ser feita aqui — quem desempata é o cadastro, não o palpite.
+        var c = InscricaoBlumenau.Normalizar("41101634")!.Candidatos;
+        Assert.Contains("4-1-10-16-34", c);
+        Assert.Contains("4-1-10-1-634", c);
+    }
+
+    [Fact]
+    public void Grupo_com_zero_a_esquerda_nao_e_fatia_valida()
+    {
+        // O IQ da base nasce sem zeros à esquerda, então `4-1-0-1-628` não
+        // existe como grafia — e cortar essas fatias é o que mantém a lista
+        // pequena o bastante para um `IN`.
+        foreach (var iq in InscricaoBlumenau.Normalizar("41241628")!.Candidatos)
+            Assert.DoesNotContain(iq.Split('-'), g => g.Length > 1 && g[0] == '0');
+    }
+
+    [Fact]
+    public void A_lista_de_fatias_nunca_estoura()
+    {
+        // O `IN` do repositório vive desta garantia. Se a largura dos grupos
+        // mudar sem ninguém olhar, é aqui que aparece.
+        for (var n = 5; n <= 10; n++)
+        {
+            var c = InscricaoBlumenau.Normalizar(new string('1', n))!.Candidatos;
+            Assert.InRange(c.Count, 1, 8);
+        }
+    }
+
+    [Fact]
+    public void A_grafia_separada_tem_um_candidato_so()
+    {
+        // Com os hífens não há o que adivinhar — e o chamador usa a MESMA
+        // lista nos dois casos, então o caminho é um só.
+        Assert.Equal(["4-1-24-20-2"], InscricaoBlumenau.Normalizar("4.1.24.20.2")!.Candidatos);
+        Assert.Equal(["4-1-24-20-2"], InscricaoBlumenau.Normalizar("412400200002000")!.Candidatos);
     }
 }

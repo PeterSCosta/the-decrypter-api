@@ -87,7 +87,14 @@ public class LookupController(
         }
 
         if (quais.HasFlag(Consultas.LoteBlumenau))
-            r.Lote = await lotes.ByInscricaoAsync(termo, ct);
+        {
+            // Quatro, e não um: sem os hífens o mesmo número admite mais de um
+            // agrupamento real (2,3% deles, nunca mais que três). Quem escolhe
+            // é quem digitou, olhando o endereço — não o servidor, no escuro.
+            var achados = await lotes.BuscarAsync(termo, 4, ct);
+            if (achados.Count == 1) r.Lote = achados[0];
+            else if (achados.Count > 1) r.Lotes = achados;
+        }
 
         if (quais.HasFlag(Consultas.CepCuringa))
         {
@@ -113,4 +120,5 @@ public class LookupResposta(string q)
     public object? Cid { get; set; }
     public object? Cids { get; set; }
     public object? Lote { get; set; }
+    public object? Lotes { get; set; }
 }

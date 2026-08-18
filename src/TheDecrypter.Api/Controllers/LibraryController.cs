@@ -128,10 +128,16 @@ public class LibraryController(DecrypterDbContext db) : ControllerBase
                     // inscrição — senão é nome de rua. Um número solto buscado
                     // como texto acharia "Rua 25" e mais mil.
                     var f = InscricaoBlumenau.Normalizar(termo);
-                    query = f is not null
-                        ? query.Where(x => x.Inscricao == f.Inscricao || x.Iq == f.Iq)
-                        : query.Where(x => EF.Functions.ILike(
-                            EF.Functions.Unaccent(x.Logradouro!), EF.Functions.Unaccent(like)));
+                    // `Candidatos` cobre as quatro grafias de uma vez: uma
+                    // entrada só quando a grafia já separa os grupos, várias
+                    // quando vieram dígitos colados e a fatia é ambígua.
+                    var cand = f?.Candidatos ?? [];
+                    query = f is null
+                        ? query.Where(x => EF.Functions.ILike(
+                            EF.Functions.Unaccent(x.Logradouro!), EF.Functions.Unaccent(like)))
+                        : f.Inscricao is { } insc
+                            ? query.Where(x => x.Inscricao == insc || cand.Contains(x.Iq!))
+                            : query.Where(x => cand.Contains(x.Iq!));
                 }
                 var total = await query.CountAsync(ct);
                 var hits = await query.OrderBy(x => x.Id).Skip(salto).Take(n).ToListAsync(ct);
