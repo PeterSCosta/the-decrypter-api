@@ -191,7 +191,12 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     await scope.ServiceProvider.GetRequiredService<IAuthService>().GarantirAdminInicialAsync(
-        app.Configuration["Admin:Email"], app.Configuration["Admin:Senha"]);
+        app.Configuration["Admin:Email"],
+        app.Configuration["Admin:Senha"],
+        // Opcional: quem já tem `Admin__Email` em produção não precisa fazer
+        // nada. Definir o apelido depois só ACRESCENTA — a conta é achada pelo
+        // e-mail e ganha o apelido, sem virar uma segunda conta de admin.
+        app.Configuration["Admin:Apelido"]);
 }
 
 app.Run();

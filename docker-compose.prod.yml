@@ -104,6 +104,10 @@ services:
       # zerada trava: todo cadastro nasce pendente e só um admin aprova.
       Admin__Email: ${ADMIN_EMAIL:-}
       Admin__Senha: ${ADMIN_SENHA:-}
+      # Opcional. Sem ela nada muda: o admin continua entrando pelo e-mail.
+      # Definindo, o admin que JÁ existe ganha o apelido (busca pelo e-mail
+      # primeiro), sem virar uma segunda conta.
+      Admin__Apelido: ${ADMIN_APELIDO:-}
     depends_on:
       decrypter-db: { condition: service_healthy }
       decrypter-cache: { condition: service_healthy }

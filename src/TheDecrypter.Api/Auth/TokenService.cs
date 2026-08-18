@@ -41,10 +41,16 @@ public class TokenService(JwtOptions options) : ITokenService
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, user.Email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(ClaimTypes.Role, user.Role),
         };
+        // Condicionais, e não por elegância: `new Claim(tipo, null)` lança
+        // ArgumentNullException. Com o e-mail opcional, um claim incondicional
+        // faria a PRIMEIRA conta sem e-mail nunca conseguir logar — o token
+        // estouraria na emissão, depois de a senha já ter sido conferida.
+        if (user.Email is { } email) claims.Add(new Claim(JwtRegisteredClaimNames.Email, email));
+        if (user.Nickname is { } apelido)
+            claims.Add(new Claim(JwtRegisteredClaimNames.PreferredUsername, apelido));
         if (user.DisplayName is { } nome) claims.Add(new Claim(ClaimTypes.Name, nome));
 
         var token = new JwtSecurityToken(

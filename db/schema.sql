@@ -215,6 +215,30 @@ ALTER TABLE app_user ADD COLUMN IF NOT EXISTS approved_by   uuid;
 -- para qualquer caminho que esqueça de normalizar.
 CREATE UNIQUE INDEX IF NOT EXISTS ux_app_user_email_lower ON app_user (lower(email));
 
+-- ===== Apelido: o identificador que não depende de ter e-mail =====
+--
+-- Some ADITIVAMENTE, e nesta ordem: a coluna primeiro, o índice depois. O
+-- sidecar roda `psql -v ON_ERROR_STOP=1`, que executa statement a statement e
+-- ABORTA no primeiro erro — um índice acima da coluna derrubaria o sidecar, e a
+-- API nova não sobe (ela depende de `service_completed_successfully`).
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS nickname text;
+
+-- O e-mail deixa de ser obrigatório: quem se cadastra agora escolhe um apelido,
+-- e o e-mail vira opcional. NÃO é destrutivo no sentido do DEPLOY.md §6 — não
+-- apaga coluna nem dado, não reescreve a tabela e é re-executável —, e tem o
+-- precedente do `ALTER COLUMN ext TYPE double precision` lá em cima.
+--
+-- As contas que já existem não perdem nada: continuam com o e-mail delas, e o
+-- login aceita e-mail OU apelido no mesmo campo.
+ALTER TABLE app_user ALTER COLUMN email DROP NOT NULL;
+
+-- Único em minúsculas, e PARCIAL: as contas antigas ficam todas com nickname
+-- NULL, e no Postgres NULL não colide com NULL — mas string vazia colide com
+-- string vazia. O `<> ''` é o mesmo cinto que o índice de aeroporto usa, para o
+-- dia em que algum caminho gravar branco em vez de NULL.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_app_user_nickname_lower
+  ON app_user (lower(nickname)) WHERE nickname IS NOT NULL AND nickname <> '';
+
 -- ========== cid (CID-10, DATASUS V2008) ==========
 -- 14.233 códigos: 2.045 categorias (A00) + 12.188 subcategorias (A00.0).
 --

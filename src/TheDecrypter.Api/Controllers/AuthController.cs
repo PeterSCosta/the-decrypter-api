@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using TheDecrypter.Api.Auth;
 using TheDecrypter.Application.Auth;
+using TheDecrypter.Domain.Auth;
 using TheDecrypter.Domain.Gateways;
 
 namespace TheDecrypter.Api.Controllers;
@@ -19,11 +20,19 @@ namespace TheDecrypter.Api.Controllers;
 [Route("api/auth")]
 public class AuthController(IAuthService auth, ITokenService tokens) : ControllerBase
 {
-    /// <summary>Cria a conta. Nasce **pendente**: só entra depois que o admin aprova.</summary>
+    /// <summary>
+    /// Cria a conta. Nasce **pendente**: só entra depois que o admin aprova.
+    ///
+    /// Aqui o apelido é OBRIGATÓRIO — no serviço ele é opcional de propósito,
+    /// porque o admin inicial nasce de variáveis de ambiente que podem trazer só
+    /// o e-mail. Quem se cadastra pela tela escolhe apelido.
+    /// </summary>
     [HttpPost("register")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Registrar([FromBody] NovoUsuarioDto novo, CancellationToken ct)
     {
+        if (Apelido.Normalizar(novo.Apelido) is null)
+            return BadRequest(new { message = "Escolha um apelido para entrar." });
         try
         {
             // `Admin: true` vindo do corpo é ignorado aqui: só o painel de admin
@@ -57,11 +66,24 @@ public class AuthController(IAuthService auth, ITokenService tokens) : Controlle
         if (resultado == ResultadoLogin.Bloqueado)
             return StatusCode(403, new { message = "Acesso bloqueado. Fale com o administrador." });
         if (resultado != ResultadoLogin.Ok || user is null)
-            return Unauthorized(new { message = "E-mail ou senha inválidos." });
+        {
+            // A frase segue o MESMO teste do `@` que escolheu onde procurar:
+            // quem digitou um e-mail lê "e-mail ou senha", quem digitou um
+            // apelido lê "apelido ou senha". Não vaza nada — o `@` está no que a
+            // própria pessoa acabou de escrever — e evita a dúvida de ler uma
+            // mensagem sobre um campo que ela não usou.
+            return Unauthorized(new
+            {
+                message = Apelido.PareceEmail(cred.Quem)
+                    ? "E-mail ou senha inválidos."
+                    : "Apelido ou senha inválidos.",
+            });
+        }
 
         var (token, expira) = tokens.Emitir(user);
         var dto = new UsuarioDto(
-            user.Id, user.Email, user.DisplayName, user.Role, user.Status, user.CreatedAt, user.ApprovedAt);
+            user.Id, user.Nickname, user.Email, user.DisplayName, user.Role, user.Status,
+            user.CreatedAt, user.ApprovedAt);
         return Ok(new SessaoDto(token, expira, dto));
     }
 

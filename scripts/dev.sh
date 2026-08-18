@@ -13,8 +13,8 @@
 # para produção e não deve ser reaproveitada em lugar nenhum. Está escrita aqui
 # justamente para ninguém precisar inventar outra nem guardá-la em canto torto.
 #
-#   e-mail: dev@local
-#   senha:  dev12345
+#   apelido: dev          (ou o e-mail dev@local — o login aceita os dois)
+#   senha:   dev12345
 #
 # (Oito caracteres porque a própria API recusa menos — a mesma regra vale em
 # dev e em produção, e é bom que valha: um ambiente de teste com validação
@@ -41,7 +41,11 @@ echo "▸ Aplicando o schema (idempotente)…"
 until docker compose exec -T postgres pg_isready -U postgres -d decrypter >/dev/null 2>&1; do
   sleep 1
 done
-docker compose exec -T postgres psql -U postgres -d decrypter -q < db/schema.sql
+# `ON_ERROR_STOP=1` para o local FALHAR como a produção falha: o sidecar de
+# deploy usa exatamente esta flag, e sem ela um erro de DDL aqui vira só um aviso
+# no terminal — o mesmo arquivo que passou em dev derrubaria o deploy, e com ele
+# a subida da API nova.
+docker compose exec -T postgres psql -U postgres -d decrypter -q -v ON_ERROR_STOP=1 < db/schema.sql
 
 if [ "${1:-}" = "--infra" ]; then
   echo "▸ Pronto. Postgres em 5433, Redis em 6380."
@@ -49,7 +53,7 @@ if [ "${1:-}" = "--infra" ]; then
 fi
 
 echo "▸ Subindo a API em http://localhost:5080 …"
-echo "  admin de dev:  dev@local  /  dev12345"
+echo "  admin de dev:  dev  (ou dev@local)  /  dev12345"
 echo
 
 ASPNETCORE_ENVIRONMENT=Development \
@@ -57,6 +61,7 @@ ConnectionStrings__DecrypterDB="Host=localhost;Port=5433;Database=decrypter;User
 ConnectionStrings__Redis="localhost:6380" \
 Jwt__SigningKey="$(openssl rand -base64 48)" \
 Admin__Email="dev@local" \
+Admin__Apelido="dev" \
 Admin__Senha="dev12345" \
 AllowedOrigins__0="http://localhost:5173" \
   dotnet run --project src/TheDecrypter.Api --urls "http://localhost:5080"

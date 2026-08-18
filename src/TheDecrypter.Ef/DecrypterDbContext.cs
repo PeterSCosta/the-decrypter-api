@@ -168,6 +168,7 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
             e.HasKey(x => x.Id);
             e.Property(x => x.Id).HasColumnName("id");
             e.Property(x => x.Email).HasColumnName("email");
+            e.Property(x => x.Nickname).HasColumnName("nickname");
             e.Property(x => x.DisplayName).HasColumnName("display_name");
             e.Property(x => x.PasswordHash).HasColumnName("password_hash");
             e.Property(x => x.Role).HasColumnName("role");
@@ -176,9 +177,13 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
             e.Property(x => x.ApprovedAt).HasColumnName("approved_at");
             e.Property(x => x.ApprovedBy).HasColumnName("approved_by");
             e.HasIndex(x => x.Email).IsUnique();
-            // `PodeEntrar`/`IsAdmin` são derivadas: existem só em C#.
+            e.HasIndex(x => x.Nickname).IsUnique();
+            // `PodeEntrar`/`IsAdmin`/`Rotulo` são derivadas: existem só em C#.
+            // Sem o `Ignore`, o EF procuraria uma coluna para cada uma e a
+            // consulta quebraria na primeira leitura.
             e.Ignore(x => x.PodeEntrar);
             e.Ignore(x => x.IsAdmin);
+            e.Ignore(x => x.Rotulo);
         });
     }
 }

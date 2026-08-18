@@ -159,6 +159,13 @@ API no próximo deploy.
   o `/docker-entrypoint-initdb.d/` — se a árvore não existir no host, o initdb
   monta vazio e a primeira subida vem sem schema. O sidecar de seed cobre depois,
   mas evite essa janela.
+- **Rollback depois do apelido:** desde que existe conta sem e-mail (o `email`
+  deixou de ser `NOT NULL`), voltar para uma imagem anterior por tag **não**
+  restaura a restrição — `email text NOT NULL` mora dentro de um
+  `CREATE TABLE IF NOT EXISTS`, que é no-op em base existente. Pior: a imagem
+  antiga tem `AppUser.Email` não-anulável e estoura ao ler a primeira linha com
+  e-mail NULL. Antes de um rollback assim, ou restaure dump, ou preencha os
+  nulos (`UPDATE app_user SET email = nickname || '@sem-email.local' WHERE email IS NULL`).
 - **`schema.sql` deve ser estritamente aditivo** (`CREATE … IF NOT EXISTS`,
   `CREATE OR REPLACE`, novos índices). O sidecar reaplica em **todo** deploy, com
   a API antiga ainda viva — qualquer `DROP COLUMN`/`ALTER TABLE` destrutivo roda

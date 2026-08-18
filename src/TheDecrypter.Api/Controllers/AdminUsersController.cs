@@ -28,7 +28,14 @@ public class AdminUsersController(IAuthService auth) : ControllerBase
         return Ok(new { total = hits.Count, hits });
     }
 
-    /// <summary>Cria já aprovado — é o admin quem está criando.</summary>
+    /// <summary>
+    /// Cria a conta pelo painel.
+    ///
+    /// ATENÇÃO ao que ela NÃO faz: a conta nasce **pendente**, como qualquer
+    /// outra — só `Admin: true` sai aprovado, e o painel manda `admin: false`.
+    /// O comentário anterior dizia "cria já aprovado", e não era verdade; quem
+    /// cria pelo painel precisa clicar em Aprovar logo depois.
+    /// </summary>
     [HttpPost]
     public async Task<IActionResult> Criar([FromBody] NovoUsuarioDto novo, CancellationToken ct)
     {
