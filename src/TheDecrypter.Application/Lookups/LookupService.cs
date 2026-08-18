@@ -16,6 +16,7 @@ public interface ILookupService
     Task<CepInfo?> CepAsync(string cep, CancellationToken ct = default);
     Task<W3wInfo?> W3wAsync(string words, CancellationToken ct = default);
     Task<GeocodeInfo?> GeocodeAsync(string query, CancellationToken ct = default);
+    Task<CnaeInfo?> CnaeAsync(string codigo, CancellationToken ct = default);
 }
 
 /// <summary>Consultas externas cache-first (Redis → provedor → cacheia).</summary>
@@ -25,7 +26,8 @@ public partial class LookupService(
     IProductGateway products,
     ICepRepository cepRepo,
     IWhat3WordsGateway w3wGateway,
-    IGeocodeGateway geoGateway) : ILookupService
+    IGeocodeGateway geoGateway,
+    ICnaeGateway cnaeGateway) : ILookupService
 {
     private const int Week = 60 * 24 * 7;
     private const int Day = 60 * 24;
@@ -53,6 +55,17 @@ public partial class LookupService(
         var clean = Digits(code);
         if (clean.Length is < 6 or > 8) return Task.FromResult<NcmInfo?>(null);
         return CacheFirst($"ncm:{clean}", () => brasil.GetNcmAsync(clean, ct), Week);
+    }
+
+    /// <summary>
+    /// CNAE — a tabela muda de ano em ano, mas um código não muda de sentido;
+    /// cache de uma semana, como o NCM e o ISBN.
+    /// </summary>
+    public Task<CnaeInfo?> CnaeAsync(string codigo, CancellationToken ct = default)
+    {
+        var limpo = Digits(codigo);
+        if (limpo.Length != 7) return Task.FromResult<CnaeInfo?>(null);
+        return CacheFirst($"cnae:{limpo}", () => cnaeGateway.GetCnaeAsync(limpo, ct), Week);
     }
 
     public Task<RegistroBrInfo?> RegistroBrAsync(string domain, CancellationToken ct = default)

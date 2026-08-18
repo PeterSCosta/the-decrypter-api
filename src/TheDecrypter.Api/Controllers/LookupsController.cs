@@ -30,6 +30,9 @@ public class LookupsController(ILookupService svc) : ControllerBase
     [HttpGet("ncm/{code}")]
     public Task<IActionResult> Ncm(string code, CancellationToken ct) => Wrap(() => svc.NcmAsync(code, ct));
 
+    [HttpGet("cnae/{code}")]
+    public Task<IActionResult> Cnae(string code, CancellationToken ct) => Wrap(() => svc.CnaeAsync(code, ct));
+
     [HttpGet("registrobr/{domain}")]
     public Task<IActionResult> RegistroBr(string domain, CancellationToken ct) =>
         Wrap(() => svc.RegistroBrAsync(domain, ct));

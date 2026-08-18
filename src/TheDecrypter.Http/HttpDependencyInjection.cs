@@ -22,6 +22,9 @@ public static class HttpDependencyInjection
         var off = configuration["Gateways:OpenFoodFacts:BaseUrl"] ?? "https://world.openfoodfacts.org/";
         var w3w = configuration["Gateways:What3Words:BaseUrl"] ?? "https://api.what3words.com/";
         var nominatim = configuration["Gateways:Nominatim:BaseUrl"] ?? "https://nominatim.openstreetmap.org/";
+        // Mesmo host que já serve os municípios do IBGE. Sem chave, com CORS —
+        // mas passa por aqui do mesmo jeito, para herdar cache e limite.
+        var ibge = configuration["Gateways:Ibge:BaseUrl"] ?? "https://servicodados.ibge.gov.br/";
         var userAgent = configuration["Gateways:Nominatim:UserAgent"]
             ?? "TheDecrypter/1.0 (+https://arromba.thelogiclab.com.br)";
         var cnpjRate = configuration.GetValue<int?>("Gateways:Cnpj:RatePerMinute") ?? 3;
@@ -38,6 +41,9 @@ public static class HttpDependencyInjection
 
         services.AddHttpClient<IWhat3WordsGateway, What3WordsGateway>(c => Configure(c, w3w))
             .AddResilienceHandler("w3w", b => AddResilience(b, generalRate));
+
+        services.AddHttpClient<ICnaeGateway, CnaeGateway>(c => Configure(c, ibge))
+            .AddResilienceHandler("cnae", b => AddResilience(b, generalRate));
 
         // Timeout maior que os demais: aqui sobem centenas de KB de áudio, e o
         // reconhecimento do outro lado não é instantâneo.
