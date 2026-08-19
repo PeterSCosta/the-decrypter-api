@@ -80,6 +80,24 @@ CREATE TABLE IF NOT EXISTS seed_state (
 -- há como saber se aquele arquivo é o mesmo.
 ALTER TABLE seed_state ADD COLUMN IF NOT EXISTS source_hash text;
 
+-- ── MIGRAÇÃO DE UMA VEZ SÓ, E ELA SE DESLIGA SOZINHA ────────────────────────
+-- No deploy em que a impressão digital nasce, TODA tabela existente cai no ramo
+-- "semeado antes desta versão — adoto o hash atual sem recarregar". Para quem
+-- não mudou, isso é o certo. Mas os arquivos destas duas MUDARAM justamente
+-- neste release: `lote_blumenau` ganhou o número de porta de 57.273 lotes e
+-- `street_rol` ganhou coordenada em 1.108 ruas. Sem esta linha, produção subiria
+-- com a coluna nova VAZIA e o dado velho — a mesma falha silenciosa que a
+-- impressão digital existe para acabar.
+--
+-- `status='in_progress'` é o caminho de auto-cura que o Seeder já tem: ele
+-- TRUNCA e refaz. E a condição `source_hash IS NULL` é exatamente "semeado antes
+-- da impressão digital": depois do primeiro recarregamento o hash fica gravado,
+-- a condição para de casar e isto NUNCA MAIS dispara — mesmo rodando em todo
+-- deploy, como este arquivo roda. Em banco novo o `seed_state` está vazio e a
+-- linha é um no-op.
+UPDATE seed_state SET status = 'in_progress'
+ WHERE source_hash IS NULL AND table_name IN ('lote_blumenau', 'street_rol');
+
 -- ========== poste (iluminação pública de Blumenau) ==========
 -- 45.285 pontos coletados do portal Cidade Iluminada (Exati/IPBL).
 CREATE TABLE IF NOT EXISTS poste (
