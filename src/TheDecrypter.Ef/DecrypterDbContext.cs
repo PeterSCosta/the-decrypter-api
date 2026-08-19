@@ -119,6 +119,7 @@ public class DecrypterDbContext(DbContextOptions<DecrypterDbContext> options) : 
             e.Property(x => x.Lat).HasColumnName("lat");
             e.Property(x => x.Lng).HasColumnName("lng");
             e.Property(x => x.AreaM2).HasColumnName("area_m2");
+            e.Property(x => x.Enderecos).HasColumnName("enderecos");
         });
 
         b.Entity<Cid>(e =>

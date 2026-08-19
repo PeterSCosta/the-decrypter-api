@@ -68,6 +68,17 @@ CREATE TABLE IF NOT EXISTS seed_state (
   rows_loaded integer,
   finished_at timestamptz
 );
+-- Impressão digital do ARQUIVO que semeou a tabela (SHA-256 em hex).
+--
+-- Sem ela, `status='complete'` era definitivo e a tabela NUNCA recarregava: um
+-- dataset regenerado não chegava em produção, o deploy passava verde e nada
+-- avisava. Descoberto ao acrescentar o endereço aos 84.539 lotes — 57.273
+-- ganharam número de porta no arquivo, e o banco continuaria com o antigo.
+--
+-- Aditiva de propósito (regra do DEPLOY.md §6): banco já existente sobe sem a
+-- coluna preenchida, e o seeder adota o hash atual sem recarregar, porque não
+-- há como saber se aquele arquivo é o mesmo.
+ALTER TABLE seed_state ADD COLUMN IF NOT EXISTS source_hash text;
 
 -- ========== poste (iluminação pública de Blumenau) ==========
 -- 45.285 pontos coletados do portal Cidade Iluminada (Exati/IPBL).
@@ -288,7 +299,9 @@ CREATE TABLE IF NOT EXISTS lote_blumenau (
   cep         varchar(8),
   lat         double precision,
   lng         double precision,
-  area_m2     integer
+  area_m2     integer,
+  -- Conjunto de endereços do lote de esquina; ver o ALTER logo abaixo.
+  enderecos   text
 );
 -- O IQ tem 13 vazios na base de origem, então o índice é parcial — e não é
 -- único: a mesma quadra/lote pode ter mais de uma unidade.
@@ -299,3 +312,16 @@ CREATE INDEX IF NOT EXISTS ix_lote_blumenau_iq
 -- Busca por rua na Biblioteca, sem acento.
 CREATE INDEX IF NOT EXISTS ix_lote_blumenau_logradouro_trgm
   ON lote_blumenau USING gin (immutable_unaccent(logradouro) gin_trgm_ops);
+
+-- O lote de ESQUINA tem mais de um endereço, e `numero` só guarda um.
+--
+-- A camada `Lotes_info` deixa `numero` vazio ou "00" em 89,5% dos lotes; o
+-- número mora na tabela `GEO.CONSULTA_ENDERECO` do mesmo geoportal, ligada pelo
+-- `iq`. O gerador escreve o que couber direto em `numero`/`logradouro` e guarda
+-- AQUI o conjunto inteiro quando ele não cabe — mais de um endereço, ou um
+-- endereço de outra rua. Formato: `"RUA, NÚMERO"` separados por `;`.
+--
+-- ADITIVA (DEPLOY.md §6): o sidecar de seed reaplica este arquivo em todo
+-- deploy, com a API antiga ainda servindo tráfego. Coluna nova e anulável não
+-- quebra quem ainda não a conhece.
+ALTER TABLE lote_blumenau ADD COLUMN IF NOT EXISTS enderecos text;

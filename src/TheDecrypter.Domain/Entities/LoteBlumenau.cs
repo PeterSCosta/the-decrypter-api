@@ -28,4 +28,20 @@ public class LoteBlumenau
     public double? Lat { get; set; }
     public double? Lng { get; set; }
     public int? AreaM2 { get; set; }
+
+    /// <summary>
+    /// O conjunto de endereços do lote, quando ele não cabe em
+    /// `Logradouro` + `Numero`: `"7 DE SETEMBRO, 1560;DOUTOR AMADEU DA LUZ, 241"`.
+    ///
+    /// O lote de ESQUINA tem mais de uma porta, e a camada de lotes só guarda
+    /// uma — a tabela de endereços do geoportal guarda todas. Escolher uma
+    /// apagaria justamente a que uma prova usa ("a casa da esquina da X com a
+    /// Y").
+    ///
+    /// Nulo no caso comum, de um endereço só: ali o número já está em `Numero`,
+    /// e repetir a mesma coisa em duas colunas é convite a divergirem. Ele
+    /// também é preenchido quando o único endereço colhido é de OUTRA rua —
+    /// esse não pode subir para `Numero` sem mudar o lote de rua.
+    /// </summary>
+    public string? Enderecos { get; set; }
 }

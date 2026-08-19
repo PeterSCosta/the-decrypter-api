@@ -95,6 +95,17 @@ psql -U postgres -d decrypter \
 # Redeploy → seed roda do zero.
 ```
 
+> **Coluna nova ≠ dado novo.** O `schema.sql` é reaplicado em todo deploy, mas o
+> seeder vê `seed_state.status='complete'` e **não** recarrega a tabela. Quando o
+> JSON ganha campo (foi o caso do `enderecos` do `lote_blumenau`, que trouxe o
+> número de porta de 57 mil lotes), a coluna sobe vazia até alguém rodar o
+> refresh acima com o nome certo:
+> ```bash
+> psql -U postgres -d decrypter \
+>   -c "TRUNCATE lote_blumenau;" \
+>   -c "DELETE FROM seed_state WHERE table_name = 'lote_blumenau';"
+> ```
+
 ## 4. Validar (curls)
 ```bash
 curl -s https://apiarromba.thelogiclab.com.br/api/health

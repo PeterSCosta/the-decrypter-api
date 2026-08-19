@@ -59,6 +59,16 @@ public static class Seeder
             throw new ArgumentException($"tabela não permitida no seed: {tableName}", nameof(tableName));
         if (!File.Exists(path)) { log.LogWarning("não achei {path}, pulando {table}", path, tableName); return; }
 
+        // Impressão digital do ARQUIVO-FONTE. Sem ela, `status='complete'` era
+        // definitivo: a tabela nunca mais recarregava, e um dataset regenerado
+        // NUNCA chegava em produção. O deploy passava verde, a coluna nova subia
+        // vazia e nada avisava — o pior tipo de falha, a silenciosa.
+        //
+        // Descoberto ao acrescentar o endereço aos 84.539 lotes: 57.273 lotes
+        // ganharam número de porta no arquivo, e o banco de produção continuaria
+        // com o arquivo antigo até alguém lembrar de um TRUNCATE manual.
+        var fingerprint = await ArquivoFingerprint(path);
+
         // SqlQueryRaw<T> exige que a coluna escalar se chame "Value" (convenção do EF).
         var status = await db.Database
             .SqlQueryRaw<string>("SELECT status AS \"Value\" FROM seed_state WHERE table_name = {0}", tableName)
@@ -66,8 +76,38 @@ public static class Seeder
 
         if (status == "complete")
         {
-            log.LogInformation("{table}: já populado (seed_state=complete), pulando", tableName);
-            return;
+            var gravado = await db.Database
+                .SqlQueryRaw<string?>(
+                    "SELECT source_hash AS \"Value\" FROM seed_state WHERE table_name = {0}", tableName)
+                .FirstOrDefaultAsync();
+
+            if (gravado == fingerprint)
+            {
+                log.LogInformation("{table}: já populado e o arquivo não mudou, pulando", tableName);
+                return;
+            }
+
+            // Banco antigo, semeado antes de existir impressão digital: não dá
+            // para saber se o arquivo é o mesmo. Assumir que É seria arriscar
+            // recarregar 84 mil linhas a cada deploy; assumir que NÃO seria
+            // manter o bug. O meio-termo honesto é adotar o hash atual e avisar.
+            if (gravado is null)
+            {
+                log.LogInformation(
+                    "{table}: sem impressão digital gravada (semeado antes desta versão) — adotando a atual sem recarregar",
+                    tableName);
+                await db.Database.ExecuteSqlRawAsync(
+                    "UPDATE seed_state SET source_hash={1} WHERE table_name={0};", tableName, fingerprint);
+                return;
+            }
+
+            log.LogWarning(
+                "{table}: o arquivo MUDOU ({velho} → {novo}), TRUNCATE + recarregar",
+                tableName, gravado[..8], fingerprint[..8]);
+#pragma warning disable EF1002, EF1003
+            await db.Database.ExecuteSqlRawAsync(
+                "TRUNCATE " + tableName + " RESTART IDENTITY CASCADE;");
+#pragma warning restore EF1002, EF1003
         }
 
         // Upgrade path: DB pré-existente sem seed_state mas com linhas (ex.: dump
@@ -111,9 +151,23 @@ public static class Seeder
         var loaded = await loader(db, log, path);
 
         await db.Database.ExecuteSqlRawAsync(@"
-            UPDATE seed_state SET status='complete', rows_loaded={1}, finished_at=now()
-            WHERE table_name={0};", tableName, loaded);
+            UPDATE seed_state SET status='complete', rows_loaded={1}, finished_at=now(), source_hash={2}
+            WHERE table_name={0};", tableName, loaded, fingerprint);
         log.LogInformation("{table}: {n} inseridos (seed_state=complete)", tableName, loaded);
+    }
+
+    /// <summary>
+    /// SHA-256 do arquivo, em hex minúsculo.
+    ///
+    /// Lê em fluxo porque os datasets vão a 16 MB e carregá-los inteiros só para
+    /// tirar o hash dobraria o pico de memória do boot — que roda no contêiner
+    /// junto da API.
+    /// </summary>
+    private static async Task<string> ArquivoFingerprint(string path)
+    {
+        await using var fs = File.OpenRead(path);
+        var hash = await System.Security.Cryptography.SHA256.HashDataAsync(fs);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
@@ -501,6 +555,12 @@ public static class Seeder
                 Lat = r[6].GetDouble() is var la && la != 0 ? la : null,
                 Lng = r[7].GetDouble() is var lo && lo != 0 ? lo : null,
                 AreaM2 = r[8].GetInt32(),
+                // Décimo campo: o conjunto de endereços do lote de esquina,
+                // vazio na maioria das linhas. Lê defensivamente porque um
+                // arquivo gerado antes do `build:enderecos` tem nove campos, e
+                // seed que estoura em arquivo velho trava o deploy inteiro (a
+                // API só sobe depois do sidecar terminar).
+                Enderecos = r.GetArrayLength() > 9 ? NullIfEmpty(r[9].GetString()) : null,
             });
             if (chunk.Count >= 5000)
             {
