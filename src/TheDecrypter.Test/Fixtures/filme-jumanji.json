@@ -1,0 +1,58 @@
+{
+  "head" : {
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "anoMin", "duracao", "direcao", "generos", "paises" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "obra" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q60501923"
+      },
+      "brApelidos" : {
+        "type" : "literal",
+        "value" : ""
+      },
+      "ptApelidos" : {
+        "type" : "literal",
+        "value" : "Jumanji 3"
+      },
+      "ptRotulo" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "Jumanji: The Next Level"
+      },
+      "ingles" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Jumanji: The Next Level"
+      },
+      "original" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Jumanji: The Next Level"
+      },
+      "anoMin" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "2019"
+      },
+      "duracao" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+        "type" : "literal",
+        "value" : "122"
+      },
+      "direcao" : {
+        "type" : "literal",
+        "value" : "Jake Kasdan"
+      },
+      "generos" : {
+        "type" : "literal",
+        "value" : "filme de aventura|comédia de ação|comédia cinematográfica"
+      },
+      "paises" : {
+        "type" : "literal",
+        "value" : "Estados Unidos"
+      }
+    } ]
+  }
+}

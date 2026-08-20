@@ -1,0 +1,63 @@
+{
+  "head" : {
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "anoMin", "duracao", "direcao", "generos", "paises" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "obra" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q108839994"
+      },
+      "brApelidos" : {
+        "type" : "literal",
+        "value" : ""
+      },
+      "brRotulo" : {
+        "xml:lang" : "pt-br",
+        "type" : "literal",
+        "value" : "Oppenheimer"
+      },
+      "ptApelidos" : {
+        "type" : "literal",
+        "value" : ""
+      },
+      "ptRotulo" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "Oppenheimer"
+      },
+      "ingles" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Oppenheimer"
+      },
+      "original" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Oppenheimer"
+      },
+      "anoMin" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "2023"
+      },
+      "duracao" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+        "type" : "literal",
+        "value" : "180"
+      },
+      "direcao" : {
+        "type" : "literal",
+        "value" : "Christopher Nolan"
+      },
+      "generos" : {
+        "type" : "literal",
+        "value" : "filme de suspense|cinebiografia|filme épico|drama"
+      },
+      "paises" : {
+        "type" : "literal",
+        "value" : "Reino Unido|Estados Unidos"
+      }
+    } ]
+  }
+}

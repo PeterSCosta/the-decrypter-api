@@ -22,6 +22,9 @@ dotnet run                           # http://localhost:5080  (Swagger em /swagg
 - `GET /api/health` → `{ "status": "ok" }`
 - `GET /api/cnpj/{cnpj}` → empresa (cache-first; provedor rate-limited via Polly)
 - `GET /api/cep/search?pattern=88xxx500` → CEPs que casam (Postgres; precisa de dados seedados)
+- `GET /api/cep/export?pattern=88xxx500` → os mesmos CEPs, **todos**, em CSV para o Excel pt-BR
+  (`;`, BOM UTF-8, vírgula decimal). Sem `.csv` na rota de propósito: a Cloudflare cacheia por
+  extensão e serviria o arquivo a quem não mandou token.
 - `GET /api/cep/{cep}` → CEP exato (base local de SC; se não achar, BrasilAPI)
 - `GET /api/isbn/{isbn}` · `GET /api/ncm/{code}` · `GET /api/registrobr/{dominio}`
 - `GET /api/produto/{barcode}` (Open Food Facts) · `GET /api/pix/{ispb}` (participante PIX)

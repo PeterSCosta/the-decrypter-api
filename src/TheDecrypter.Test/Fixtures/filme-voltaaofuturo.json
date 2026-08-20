@@ -1,0 +1,63 @@
+{
+  "head" : {
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "anoMin", "duracao", "direcao", "generos", "paises" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "obra" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q91540"
+      },
+      "brApelidos" : {
+        "type" : "literal",
+        "value" : ""
+      },
+      "brRotulo" : {
+        "xml:lang" : "pt-br",
+        "type" : "literal",
+        "value" : "De Volta Para o Futuro"
+      },
+      "ptApelidos" : {
+        "type" : "literal",
+        "value" : "Back to the Future"
+      },
+      "ptRotulo" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "Regresso ao Futuro"
+      },
+      "ingles" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Back to the Future"
+      },
+      "original" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Back to the Future"
+      },
+      "anoMin" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "1985"
+      },
+      "duracao" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+        "type" : "literal",
+        "value" : "115"
+      },
+      "direcao" : {
+        "type" : "literal",
+        "value" : "Robert Zemeckis"
+      },
+      "generos" : {
+        "type" : "literal",
+        "value" : "filme de ficção científica|filme de aventura|comédia cinematográfica"
+      },
+      "paises" : {
+        "type" : "literal",
+        "value" : "Estados Unidos"
+      }
+    } ]
+  }
+}

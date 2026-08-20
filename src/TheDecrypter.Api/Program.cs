@@ -22,7 +22,10 @@ builder.Services.AddResponseCompression(o =>
     o.EnableForHttps = true;
     o.Providers.Add<BrotliCompressionProvider>();
     o.Providers.Add<GzipCompressionProvider>();
-    o.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/json"]);
+    // `text/csv` junto: a exportação de CEP são ~3 MB de texto muito repetido,
+    // que o Brotli reduz a algumas centenas de KB. É o maior corpo que esta API
+    // devolve, e o único que a pessoa espera olhando para um botão.
+    o.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/json", "text/csv"]);
 });
 builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
@@ -68,6 +71,17 @@ builder.Services.AddRateLimiter(o =>
         RateLimitPartition.GetFixedWindowLimiter(
             DeQuemE(ctx),
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1) }));
+
+    // Exportação: um CSV é duas varreduras da tabela de CEP com regex e ~3 MB
+    // de corpo — não é uma consulta de milissegundos, e o balde global de
+    // 120/min foi dimensionado para essas. Somando (política de endpoint SOMA
+    // ao global, ver acima), passam 6/min por IP: o suficiente para quem está
+    // baixando de verdade, longe do suficiente para pôr a API de joelhos com
+    // uma aba em laço.
+    o.AddPolicy("export", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            $"export:{DeQuemE(ctx)}",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 6, Window = TimeSpan.FromMinutes(1) }));
 
     // Login e cadastro: 120/min é convite a força bruta de senha.
     o.AddPolicy("auth", ctx =>
@@ -143,7 +157,14 @@ builder.Services.AddAuthorization();
 var origins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
     ?? ["http://localhost:5173"];
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod()));
+    // `WithExposedHeaders` porque o download precisa do nome do arquivo: por
+    // padrão o navegador esconde do JS todo cabeçalho de resposta que não seja
+    // da lista curta do CORS, e `Content-Disposition` não está nela. Sem esta
+    // linha o front teria de reinventar o nome — a MESMA regra escrita em dois
+    // idiomas, que é o defeito que o `CepPattern` deste repositório existe para
+    // não repetir.
+    p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod()
+        .WithExposedHeaders("Content-Disposition")));
 
 var app = builder.Build();
 

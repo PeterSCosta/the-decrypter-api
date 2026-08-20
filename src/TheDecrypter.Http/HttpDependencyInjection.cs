@@ -45,6 +45,18 @@ public static class HttpDependencyInjection
         services.AddHttpClient<ICnaeGateway, CnaeGateway>(c => Configure(c, ibge))
             .AddResilienceHandler("cnae", b => AddResilience(b, generalRate));
 
+        // Wikidata: sem chave e sem cota, mas com POLÍTICA DE USO — o endpoint
+        // pede User-Agent identificável, como o Nominatim, e por isso reusa o
+        // mesmo. Consulta SPARQL é mais pesada que um GET de tabela; teto
+        // próprio e mais baixo, e timeout maior que o padrão.
+        services.AddHttpClient<IWikidataGateway, WikidataGateway>(c =>
+        {
+            Configure(c, configuration["Gateways:Wikidata:BaseUrl"] ?? "https://query.wikidata.org/");
+            c.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
+            c.DefaultRequestHeaders.Accept.ParseAdd("application/sparql-results+json");
+            c.Timeout = TimeSpan.FromSeconds(20);
+        }).AddResilienceHandler("wikidata", b => AddResilience(b, 30));
+
         // Timeout maior que os demais: aqui sobem centenas de KB de áudio, e o
         // reconhecimento do outro lado não é instantâneo.
         services.AddHttpClient<IMusicGateway, AuddGateway>(c =>

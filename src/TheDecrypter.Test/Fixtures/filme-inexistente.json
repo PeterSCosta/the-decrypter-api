@@ -1,0 +1,8 @@
+{
+  "head" : {
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "anoMin", "duracao", "direcao", "generos", "paises" ]
+  },
+  "results" : {
+    "bindings" : [ ]
+  }
+}

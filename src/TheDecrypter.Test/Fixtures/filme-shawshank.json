@@ -1,0 +1,63 @@
+{
+  "head" : {
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "anoMin", "duracao", "direcao", "generos", "paises" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "obra" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q172241"
+      },
+      "brApelidos" : {
+        "type" : "literal",
+        "value" : "Um Sonho de Liberdade"
+      },
+      "brRotulo" : {
+        "xml:lang" : "pt-br",
+        "type" : "literal",
+        "value" : "The Shawshank Redemption"
+      },
+      "ptApelidos" : {
+        "type" : "literal",
+        "value" : "Shawshank Redemption|Os Condenados de Shawshank"
+      },
+      "ptRotulo" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "The Shawshank Redemption"
+      },
+      "ingles" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "The Shawshank Redemption"
+      },
+      "original" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "The Shawshank Redemption"
+      },
+      "anoMin" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "1994"
+      },
+      "duracao" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+        "type" : "literal",
+        "value" : "142"
+      },
+      "direcao" : {
+        "type" : "literal",
+        "value" : "Frank Darabont"
+      },
+      "generos" : {
+        "type" : "literal",
+        "value" : "filme sobre crimes|Filme de amigos|Filme carcerário|drama"
+      },
+      "paises" : {
+        "type" : "literal",
+        "value" : "Estados Unidos"
+      }
+    } ]
+  }
+}

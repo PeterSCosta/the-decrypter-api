@@ -1,0 +1,58 @@
+{
+  "head" : {
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "anoMin", "duracao", "direcao", "generos", "paises" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "obra" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q498277"
+      },
+      "brApelidos" : {
+        "type" : "literal",
+        "value" : ""
+      },
+      "ptApelidos" : {
+        "type" : "literal",
+        "value" : ""
+      },
+      "ptRotulo" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "Close-up"
+      },
+      "ingles" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Close-Up"
+      },
+      "original" : {
+        "xml:lang" : "fa",
+        "type" : "literal",
+        "value" : "کلوزآپ"
+      },
+      "anoMin" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "1990"
+      },
+      "duracao" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+        "type" : "literal",
+        "value" : "98"
+      },
+      "direcao" : {
+        "type" : "literal",
+        "value" : "Abbas Kiarostami"
+      },
+      "generos" : {
+        "type" : "literal",
+        "value" : "docuficção"
+      },
+      "paises" : {
+        "type" : "literal",
+        "value" : "Irão|França"
+      }
+    } ]
+  }
+}

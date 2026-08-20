@@ -34,6 +34,11 @@ um **`TokenBucketRateLimiter`** (ex.: `TokenLimit=3 / 1 min`). Ver `Http/HttpDep
 EF Core 10 + Npgsql (igual the-logic-lab). Tabelas `cep`, `street`, `municipio`, `app_user`
 (ver `db/schema.sql`). Por que Postgres e não SQLite/JSON: você **já roda** Postgres; índices,
 consulta parcial e zero download de 3 MB. Permite expandir CEP de "só SC" → **Brasil inteiro**.
+- **A exceção, e ela é deliberada:** `/api/cep/export` devolve exatamente esses ~3 MB. A diferença
+  é que ali o dump **é o produto** (a pessoa pediu o arquivo), não o caminho de consulta — e é
+  por isso que ele tem portão próprio (`LookupShape.ParecePadraoDeCep`, que recusa `xxxxxxxx`),
+  balde de rate limit próprio (6/min) e um teto de 100.000 linhas, inalcançável com a base de SC
+  e escrito para o dia do CEP nacional.
 - **CEP curinga `88xxx500`:** prefixo fixo (`88010%`) usa o índice da PK via `LIKE`, e o
   resto vira **regex POSIX** do Postgres (`code ~ '^88\d{3}500$'`). Brasil inteiro → particionar
   por UF. Ver `Ef/Repositories/CepRepository.cs`.
@@ -75,7 +80,8 @@ o emissor mantendo `[Authorize]` e os papéis — a superfície já está no lug
 
 ## Caminho de migração (incremental)
 1. `/api/cnpj/{n}` cache-first (Polly + Redis + BrasilAPI/ReceitaWS) — **PoC já neste repo**.
-2. Datasets → Postgres + `/api/cep/search`, `/api/streets/search`. React para de baixar JSON.
+2. Datasets → Postgres + `/api/cep/search`, `/api/cep/export`, `/api/streets/search`. React para
+   de baixar JSON.
 3. Demais consultas externas atrás do gateway (ISBN, NCM, produto, w3w, gov.br Conecta).
 4. Auth/usuários + rate-limit por usuário.
 5. Ingestão CEP nacional + bairros.

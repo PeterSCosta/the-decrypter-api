@@ -11,4 +11,11 @@
     <ProjectReference Include="..\TheDecrypter.Application\TheDecrypter.Application.csproj" />
     <ProjectReference Include="..\TheDecrypter.Domain\TheDecrypter.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Respostas REAIS do endpoint do Wikidata, baixadas em 2026-08-20. São
+         fixture e não mock: o valor delas é justamente serem o que o serviço
+         devolve de fato, com as unidades e os campos que ele de fato usa. -->
+    <Content Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

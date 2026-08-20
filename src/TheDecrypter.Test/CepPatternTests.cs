@@ -61,4 +61,33 @@ public class CepPatternTests
         Assert.Null(CepPattern.Traduzir(""));
         Assert.Null(CepPattern.Traduzir("abc"));
     }
+
+    /// <summary>
+    /// Letra RECUSA o padrão inteiro — ela não é descartada. O TS sempre fez
+    /// isso (`^[0-9xX*_?]+$`); o C# limpava com um `Where` que jogava as letras
+    /// fora, então "Rua XV" virava aqui o padrão "X" (= `\d`, que casa com todo
+    /// CEP do país) e lá virava `null`. A divergência custava a busca de rua da
+    /// principal de Blumenau — ver `LookupShapeCuringaTests`.
+    /// </summary>
+    [Theory]
+    [InlineData("Rua XV")]
+    [InlineData("XV de Novembro")]
+    [InlineData("Rua Max Tavares")]
+    [InlineData("88x10a")]
+    [InlineData("R. 7 de Setembro")]
+    public void letra_recusa_o_padrao_em_vez_de_ser_descartada(string bruto)
+    {
+        Assert.Null(CepPattern.Traduzir(bruto));
+    }
+
+    /// <summary>
+    /// O traço e o ponto continuam sendo separador, não caractere estranho —
+    /// é a metade da regra que a recusa não pode ter levado junto.
+    /// </summary>
+    [Fact]
+    public void separador_continua_sumindo()
+    {
+        Assert.Equal(@"^88\d\d\d500$", CepPattern.Traduzir("88.xxx-500")!.Regex);
+        Assert.Equal(@"^88010500$", CepPattern.Traduzir(" 88010 500 ")!.Regex);
+    }
 }

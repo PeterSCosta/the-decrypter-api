@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using TheDecrypter.Application.Lookups;
 using TheDecrypter.Domain.Repositories;
 using TheDecrypter.Domain.Search;
 
@@ -29,17 +30,20 @@ public class LookupController(
     IPosteRepository postes,
     IAirportRepository aeroportos,
     ICidRepository cids,
-    ILoteBlumenauRepository lotes) : ControllerBase
+    ILoteBlumenauRepository lotes,
+    ILookupService externos) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Consultar([FromQuery] string q, CancellationToken ct)
     {
         var termo = (q ?? string.Empty).Trim();
         var quais = LookupShape.De(termo);
+        // Vazio explícito, e não ausente: é a diferença entre "não sei procurar
+        // isto" e "perguntei e não achei". Ver `LookupShape.Nomes`.
         if (quais == Consultas.Nenhuma) return Ok(new LookupResposta(termo));
 
         var digitos = new string([.. termo.Where(char.IsDigit)]);
-        var r = new LookupResposta(termo);
+        var r = new LookupResposta(termo) { Consultou = LookupShape.Nomes(quais) };
 
         // SEQUENCIAL, e não `Task.WhenAll`: as sub-consultas dividem o mesmo
         // `DbContext` com escopo de requisição, e duas operações simultâneas
@@ -96,6 +100,15 @@ public class LookupController(
             else if (achados.Count > 1) r.Lotes = achados;
         }
 
+        if (quais.HasFlag(Consultas.Filme))
+        {
+            // A ÚNICA consulta daqui que sai para fora da nossa infraestrutura.
+            // Se o Wikidata cair ou demorar, a exceção sobe e o cliente mostra
+            // "não consegui perguntar" — que é diferente de "não encontrei", e
+            // é a distinção que o card inteiro depende.
+            r.Filme = await externos.FilmeAsync(termo, ct);
+        }
+
         if (quais.HasFlag(Consultas.CepCuringa))
         {
             var (hits, total) = await ceps.SearchWildcardAsync(termo, 12, ct);
@@ -110,6 +123,15 @@ public class LookupController(
 public class LookupResposta(string q)
 {
     public string Q { get; } = q;
+
+    /// <summary>
+    /// Quais consultas a forma da entrada abriu. **Vazio significa "não abri
+    /// nenhuma"**, e é isso que separa "não achei" de "não sei procurar isto".
+    ///
+    /// Sem este campo os dois casos saem com a mesma cara — todas as chaves em
+    /// `null` — e o cliente não tem como ser honesto. Ver `LookupShape.Nomes`.
+    /// </summary>
+    public IReadOnlyList<string> Consultou { get; set; } = [];
     public object? Cep { get; set; }
     public List<object>? CepsPrefixo { get; set; }
     public object? Municipio { get; set; }
@@ -121,4 +143,5 @@ public class LookupResposta(string q)
     public object? Cids { get; set; }
     public object? Lote { get; set; }
     public object? Lotes { get; set; }
+    public object? Filme { get; set; }
 }

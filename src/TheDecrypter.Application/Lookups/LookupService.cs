@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using TheDecrypter.Domain.Gateways;
 using TheDecrypter.Domain.Repositories;
+using TheDecrypter.Domain.Search;
 using TheDecrypter.Domain.Services.Cache;
 
 namespace TheDecrypter.Application.Lookups;
@@ -17,6 +18,7 @@ public interface ILookupService
     Task<W3wInfo?> W3wAsync(string words, CancellationToken ct = default);
     Task<GeocodeInfo?> GeocodeAsync(string query, CancellationToken ct = default);
     Task<CnaeInfo?> CnaeAsync(string codigo, CancellationToken ct = default);
+    Task<FilmeInfo?> FilmeAsync(string imdbId, CancellationToken ct = default);
 }
 
 /// <summary>Consultas externas cache-first (Redis → provedor → cacheia).</summary>
@@ -27,7 +29,8 @@ public partial class LookupService(
     ICepRepository cepRepo,
     IWhat3WordsGateway w3wGateway,
     IGeocodeGateway geoGateway,
-    ICnaeGateway cnaeGateway) : ILookupService
+    ICnaeGateway cnaeGateway,
+    IWikidataGateway wikidata) : ILookupService
 {
     private const int Week = 60 * 24 * 7;
     private const int Day = 60 * 24;
@@ -66,6 +69,25 @@ public partial class LookupService(
         var limpo = Digits(codigo);
         if (limpo.Length != 7) return Task.FromResult<CnaeInfo?>(null);
         return CacheFirst($"cnae:{limpo}", () => cnaeGateway.GetCnaeAsync(limpo, ct), Week);
+    }
+
+    /// <summary>
+    /// Filme por ID da IMDb, no Wikidata — cacheado por uma SEMANA.
+    ///
+    /// Ficha de filme praticamente não muda, e a consulta SPARQL é a mais cara
+    /// desta casa. Uma semana também protege a política de uso do endpoint, que
+    /// é aberto mas não é ilimitado.
+    ///
+    /// O <c>CacheFirst</c> não guarda <c>null</c>, e aqui isso é o
+    /// comportamento certo: um ID ausente hoje pode entrar no Wikidata amanhã,
+    /// e memorizar a ausência por uma semana congelaria a resposta errada.
+    /// </summary>
+    public Task<FilmeInfo?> FilmeAsync(string imdbId, CancellationToken ct = default)
+    {
+        var id = ImdbId.Normalizar(imdbId);
+        return id.Length == 0
+            ? Task.FromResult<FilmeInfo?>(null)
+            : CacheFirst($"filme:{id}", () => wikidata.FilmePorImdbAsync(id, ct), Week);
     }
 
     public Task<RegistroBrInfo?> RegistroBrAsync(string domain, CancellationToken ct = default)
