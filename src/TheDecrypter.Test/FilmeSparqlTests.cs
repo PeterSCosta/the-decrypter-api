@@ -1,4 +1,5 @@
 using TheDecrypter.Domain.Gateways;
+using TheDecrypter.Domain.Search;
 using Xunit;
 
 namespace TheDecrypter.Test;
@@ -158,5 +159,121 @@ public class FilmeSparqlTests
         Assert.NotNull(f.WikidataId);
         Assert.StartsWith("Q", f.WikidataId);
         Assert.Equal("Wikidata", f.Fonte);
+    }
+}
+
+/// <summary>
+/// O DEFEITO QUE UM `tt…` COLADO REVELOU.
+///
+/// A regra de continência existia para matar "Shawshank Redemption" contra "The
+/// Shawshank Redemption" — o original sem o artigo, que passaria por tradução.
+/// Só que ela também matava "007 - Operação Skyfall", que CONTÉM "Skyfall" e é
+/// um título de verdade. O título existia na fonte e a bancada o jogava fora.
+///
+/// O que separa os dois é o TAMANHO da diferença: 3 caracteres num caso, 11 no
+/// outro. O corte de 4 cobre os artigos das duas línguas e nada além deles.
+/// </summary>
+public class FilmeSparqlContinenciaTests
+{
+    private static string Fix(string nome) =>
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", $"filme-{nome}.json"));
+
+    [Fact]
+    public void Titulo_que_contem_o_original_mas_e_muito_maior_NAO_e_variacao()
+    {
+        var f = FilmeSparql.Ler("tt1074638", Fix("skyfall"))!;
+        Assert.Equal("Skyfall", f.TituloOriginal);
+        // Antes do conserto isto era null: "007 - Operação Skyfall" contém
+        // "Skyfall" e era descartado como se fosse o mesmo nome.
+        Assert.Equal("007 - Operação Skyfall", f.TituloPt);
+    }
+
+    /// <summary>E o caso que a regra existia para pegar continua pego.</summary>
+    [Fact]
+    public void O_original_sem_o_artigo_continua_sendo_variacao()
+    {
+        var f = FilmeSparql.Ler("tt0111161", Fix("shawshank"))!;
+        Assert.Equal("Um Sonho de Liberdade", f.TituloBr);
+        Assert.Equal("Os Condenados de Shawshank", f.TituloPt);
+        Assert.DoesNotContain("Shawshank Redemption", f.TituloPt!);
+    }
+
+    [Fact]
+    public void Skyfall_traz_ano_duracao_e_direcao()
+    {
+        var f = FilmeSparql.Ler("tt1074638", Fix("skyfall"))!;
+        Assert.Equal(2012, f.Ano);
+        Assert.Equal(143, f.DuracaoMin);
+        Assert.Contains("Sam Mendes", f.Direcao!);
+        // O filme se chama igual aqui e lá: não há título brasileiro distinto,
+        // e a bancada diz isso em vez de inventar um.
+        Assert.Null(f.TituloBr);
+    }
+}
+
+/// <summary>
+/// A SEGUNDA PORTA: o código do Wikidata.
+///
+/// `Q4941` é o mesmo filme que `tt1074638`, escrito no catálogo do Wikidata em
+/// vez do da IMDb — e é o que se copia de uma página do Wikidata. Sem esta
+/// porta, a bancada lia `Q4941` como cauda de Geohash e devolvia cinco pontos
+/// em Blumenau, sem nunca dizer que aquilo era um filme.
+/// </summary>
+public class FilmeSparqlPorQidTests
+{
+    private static string Fix(string nome) =>
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", $"filme-{nome}.json"));
+
+    [Fact]
+    public void As_duas_portas_chegam_no_mesmo_filme()
+    {
+        var porTt = FilmeSparql.Ler("tt1074638", Fix("skyfall"))!;
+        var porQid = FilmeSparql.Ler("Q4941", Fix("qid-skyfall"))!;
+        Assert.Equal(porTt.TituloOriginal, porQid.TituloOriginal);
+        Assert.Equal(porTt.Ano, porQid.Ano);
+        Assert.Equal(porTt.DuracaoMin, porQid.DuracaoMin);
+    }
+
+    /// <summary>
+    /// Entrando pelo QID, o ID da IMDb sai da resposta — é ele que a pessoa vai
+    /// querer copiar, e é a chave do outro catálogo.
+    /// </summary>
+    [Fact]
+    public void Pelo_qid_o_id_da_imdb_vem_junto()
+    {
+        Assert.Equal("tt1074638", FilmeSparql.Ler("Q4941", Fix("qid-skyfall"))!.ImdbId);
+        Assert.Equal("tt0317248", FilmeSparql.Ler("Q220741", Fix("qid-cidadededeus"))!.ImdbId);
+    }
+
+    /// <summary>
+    /// UM QID SOZINHO NÃO PROMETE NADA. `Q42` é Douglas Adams, e o identificador
+    /// que ele carrega é de PESSOA (`nm0010930`), não de título. Quem promete é
+    /// a classificação — sem ela, a bancada cala em vez de apresentar uma pessoa
+    /// como se fosse um filme.
+    /// </summary>
+    [Fact]
+    public void Qid_que_nao_e_filme_devolve_nulo()
+    {
+        Assert.Null(FilmeSparql.Ler("Q42", Fix("qid-pessoa")));
+    }
+
+    [Fact]
+    public void A_consulta_muda_de_ancora_conforme_a_porta()
+    {
+        Assert.Contains("wdt:P345 \"tt1074638\"", FilmeSparql.Consulta("tt1074638"));
+        Assert.Contains("BIND(wd:Q4941 AS ?obra)", FilmeSparql.Consulta("Q4941"));
+        Assert.Contains("BIND(wd:Q4941 AS ?obra)", FilmeSparql.Consulta("  q4941 "));
+        foreach (var lixo in new[] { "Q", "Q0", "Q12x", "4941", "" })
+            Assert.Equal(string.Empty, FilmeSparql.Consulta(lixo));
+    }
+
+    [Fact]
+    public void O_portao_de_forma_abre_para_as_duas()
+    {
+        Assert.True(LookupShape.De("tt1074638").HasFlag(Consultas.Filme));
+        Assert.True(LookupShape.De("Q4941").HasFlag(Consultas.Filme));
+        Assert.False(LookupShape.De("Q0").HasFlag(Consultas.Filme));
+        // `4941` sozinho é número, e continua sendo lido como número.
+        Assert.False(LookupShape.De("4941").HasFlag(Consultas.Filme));
     }
 }

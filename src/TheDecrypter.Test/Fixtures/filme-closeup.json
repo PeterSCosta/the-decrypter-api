@@ -1,6 +1,6 @@
 {
   "head" : {
-    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "anoMin", "duracao", "direcao", "generos", "paises" ]
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "anoMin", "duracao", "direcao", "generos", "paises" ]
   },
   "results" : {
     "bindings" : [ {
@@ -30,6 +30,15 @@
         "xml:lang" : "fa",
         "type" : "literal",
         "value" : "کلوزآپ"
+      },
+      "imdbId" : {
+        "type" : "literal",
+        "value" : "tt0100234"
+      },
+      "filme" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "1"
       },
       "anoMin" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",

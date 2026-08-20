@@ -1,6 +1,6 @@
 {
   "head" : {
-    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "anoMin", "duracao", "direcao", "generos", "paises" ]
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "anoMin", "duracao", "direcao", "generos", "paises" ]
   },
   "results" : {
     "bindings" : [ {
@@ -36,6 +36,15 @@
         "type" : "literal",
         "value" : "The Shawshank Redemption"
       },
+      "imdbId" : {
+        "type" : "literal",
+        "value" : "tt0111161"
+      },
+      "filme" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "1"
+      },
       "anoMin" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
         "type" : "literal",
@@ -52,7 +61,7 @@
       },
       "generos" : {
         "type" : "literal",
-        "value" : "filme sobre crimes|Filme de amigos|Filme carcerário|drama"
+        "value" : "Filme de amigos|Filme carcerário|drama|filme sobre crimes"
       },
       "paises" : {
         "type" : "literal",

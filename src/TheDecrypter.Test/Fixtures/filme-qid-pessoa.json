@@ -1,0 +1,37 @@
+{
+  "head" : {
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "anoMin", "duracao", "direcao", "generos", "paises" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "obra" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q42"
+      },
+      "brApelidos" : {
+        "type" : "literal",
+        "value" : ""
+      },
+      "ptApelidos" : {
+        "type" : "literal",
+        "value" : ""
+      },
+      "imdbId" : {
+        "type" : "literal",
+        "value" : "nm0010930"
+      },
+      "direcao" : {
+        "type" : "literal",
+        "value" : ""
+      },
+      "generos" : {
+        "type" : "literal",
+        "value" : "comédia|ficção científica|sátira"
+      },
+      "paises" : {
+        "type" : "literal",
+        "value" : ""
+      }
+    } ]
+  }
+}

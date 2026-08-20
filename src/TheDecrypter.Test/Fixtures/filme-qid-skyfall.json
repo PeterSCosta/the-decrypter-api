@@ -6,7 +6,7 @@
     "bindings" : [ {
       "obra" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q91540"
+        "value" : "http://www.wikidata.org/entity/Q4941"
       },
       "brApelidos" : {
         "type" : "literal",
@@ -15,30 +15,30 @@
       "brRotulo" : {
         "xml:lang" : "pt-br",
         "type" : "literal",
-        "value" : "De Volta Para o Futuro"
+        "value" : "Skyfall"
       },
       "ptApelidos" : {
         "type" : "literal",
-        "value" : "Back to the Future"
+        "value" : "007 - Operação Skyfall"
       },
       "ptRotulo" : {
         "xml:lang" : "pt",
         "type" : "literal",
-        "value" : "Regresso ao Futuro"
+        "value" : "Skyfall"
       },
       "ingles" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "Back to the Future"
+        "value" : "Skyfall"
       },
       "original" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "Back to the Future"
+        "value" : "Skyfall"
       },
       "imdbId" : {
         "type" : "literal",
-        "value" : "tt0088763"
+        "value" : "tt1074638"
       },
       "filme" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
@@ -48,24 +48,24 @@
       "anoMin" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
         "type" : "literal",
-        "value" : "1985"
+        "value" : "2012"
       },
       "duracao" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
         "type" : "literal",
-        "value" : "115"
+        "value" : "143"
       },
       "direcao" : {
         "type" : "literal",
-        "value" : "Robert Zemeckis"
+        "value" : "Sam Mendes"
       },
       "generos" : {
         "type" : "literal",
-        "value" : "filme de aventura|filme de ficção científica|comédia cinematográfica"
+        "value" : "filme de espionagem|filme de ação"
       },
       "paises" : {
         "type" : "literal",
-        "value" : "Estados Unidos"
+        "value" : "Estados Unidos|Reino Unido"
       }
     } ]
   }

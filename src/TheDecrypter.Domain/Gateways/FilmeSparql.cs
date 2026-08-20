@@ -50,12 +50,15 @@ public static class FilmeSparql
                (GROUP_CONCAT(DISTINCT ?ptA;   separator="|") AS ?ptApelidos)
                (SAMPLE(?ptL)   AS ?ptRotulo)
                (SAMPLE(?enL) AS ?ingles) (SAMPLE(?origL) AS ?original)
+               (SAMPLE(?imdb) AS ?imdbId) (SAMPLE(?ehFilme) AS ?filme)
                (MIN(?ano) AS ?anoMin) (SAMPLE(?minutos) AS ?duracao)
                (GROUP_CONCAT(DISTINCT ?dirL;  separator="|") AS ?direcao)
                (GROUP_CONCAT(DISTINCT ?genL;  separator="|") AS ?generos)
                (GROUP_CONCAT(DISTINCT ?paisL; separator="|") AS ?paises)
         WHERE {
-          ?obra wdt:P345 "@ID" .
+          @ANCORA
+          OPTIONAL { ?obra wdt:P345 ?imdb }
+          OPTIONAL { ?obra wdt:P31/wdt:P279* wd:Q11424 . BIND(1 AS ?ehFilme) }
           OPTIONAL { ?obra skos:altLabel ?ptbrA . FILTER(LANG(?ptbrA) = "pt-br") }
           OPTIONAL { ?obra rdfs:label    ?ptbrL . FILTER(LANG(?ptbrL) = "pt-br") }
           OPTIONAL { ?obra skos:altLabel ?ptA   . FILTER(LANG(?ptA)   = "pt")    }
@@ -83,20 +86,35 @@ public static class FilmeSparql
     /// conferido AQUI e não confiado a quem chama — `tt` e dígitos não têm como
     /// carregar aspas, chave nem espaço.
     /// </summary>
-    public static string Consulta(string? imdbId)
+    /// <summary>
+    /// A consulta para uma chave — `tt1074638` ou `Q4941`.
+    ///
+    /// As duas portas resolvem a MESMA obra por catálogos diferentes: a IMDb
+    /// indexa títulos, o Wikidata indexa qualquer coisa. A chave entra por
+    /// substituição de texto, então ela é conferida AQUI e não confiada a quem
+    /// chama — `tt` com dígitos e `Q` com dígitos não têm como carregar aspas,
+    /// chave nem espaço.
+    /// </summary>
+    public static string Consulta(string? chave)
     {
-        var id = ImdbId.Normalizar(imdbId);
-        return id.Length == 0 ? string.Empty : Modelo.Replace("@ID", id);
+        var tt = ImdbId.Normalizar(chave);
+        if (tt.Length > 0) return Modelo.Replace("@ANCORA", $"?obra wdt:P345 \"{tt}\" .");
+
+        var qid = WikidataId.Normalizar(chave);
+        if (qid.Length > 0) return Modelo.Replace("@ANCORA", $"BIND(wd:{qid} AS ?obra)");
+
+        return string.Empty;
     }
 
     /// <summary>
     /// O corpo da resposta → ficha. <c>null</c> quando o Wikidata não conhece
     /// o ID — que **não** é o mesmo que "o filme não existe".
     /// </summary>
-    public static FilmeInfo? Ler(string imdbId, string json)
+    public static FilmeInfo? Ler(string chave, string json)
     {
-        var id = ImdbId.Normalizar(imdbId);
-        if (id.Length == 0 || string.IsNullOrWhiteSpace(json)) return null;
+        var id = ImdbId.Normalizar(chave);
+        var qid = WikidataId.Normalizar(chave);
+        if ((id.Length == 0 && qid.Length == 0) || string.IsNullOrWhiteSpace(json)) return null;
 
         JsonDocument doc;
         try { doc = JsonDocument.Parse(json); }
@@ -110,6 +128,17 @@ public static class FilmeSparql
                 return null;
 
             var r = b[0];
+
+            /*
+             * ── PELA PORTA DO QID, "É FILME?" É PARTE DA RESPOSTA ───────────
+             * `Q4941` é Skyfall; `Q42` é Douglas Adams, e o ID que ele carrega
+             * é de PESSOA (`nm0010930`), não de título. Um QID sozinho não
+             * promete nada — quem promete é a classificação. Sem ela, este
+             * método não devolve ficha de filme, e a bancada segue calada em
+             * vez de apresentar uma pessoa como se fosse um filme.
+             */
+            if (id.Length == 0 && V(r, "filme") is null) return null;
+
             var original = V(r, "original");
             var ingles = V(r, "ingles");
 
@@ -123,7 +152,9 @@ public static class FilmeSparql
                      ?? Traduzido(V(r, "ptRotulo"), original, ingles);
 
             return new FilmeInfo(
-                id,
+                // Entrando pelo QID, o ID da IMDb vem da resposta — é ele que a
+                // pessoa vai querer copiar, e é a chave do outro catálogo.
+                id.Length > 0 ? id : (V(r, "imdbId") ?? qid),
                 br,
                 pt,
                 original,
@@ -170,23 +201,34 @@ public static class FilmeSparql
         candidato is null ? null : Traduzido([candidato], original, ingles);
 
     /// <summary>
-    /// "Igual o suficiente para não ser tradução".
+    /// Uma variação do mesmo nome — o artigo que caiu, não uma tradução.
     ///
-    /// Igualdade exata é fraca demais aqui. Os apelidos <c>pt</c> de <i>Um
-    /// Sonho de Liberdade</i> são "Shawshank Redemption" e "Os Condenados de
-    /// Shawshank": o primeiro é o título original sem o artigo, e passaria por
-    /// tradução num teste de igualdade — devolvendo o inglês com etiqueta de
-    /// português, que é exatamente o que este arquivo inteiro evita.
+    /// ── POR QUE NÃO BASTA IGUALDADE EXATA ──────────────────────────────────
+    /// Os apelidos <c>pt</c> de <i>Um Sonho de Liberdade</i> incluem "Shawshank
+    /// Redemption": é o título original sem o artigo, e passaria por tradução
+    /// num teste de igualdade — devolvendo o inglês com etiqueta de português.
     ///
-    /// Por isso a comparação é sobre a forma dobrada (sem acento, sem
-    /// pontuação, sem espaço) e por CONTINÊNCIA nos dois sentidos: um título
-    /// contido no outro é variação do mesmo nome, não tradução dele.
+    /// ── E POR QUE CONTINÊNCIA SOZINHA É DEMAIS ─────────────────────────────
+    /// Este foi um defeito real, achado quando alguém colou `tt1074638`. O
+    /// título brasileiro de <i>Skyfall</i> é "007 - Operação Skyfall", que
+    /// CONTÉM "Skyfall" — e a regra de continência pura o descartava como
+    /// variação. O título existia na fonte e a bancada o jogava fora.
+    ///
+    /// O que separa os dois é o TAMANHO da diferença, e ele separa com folga:
+    /// "Shawshank Redemption" difere do original em <b>3</b> caracteres
+    /// dobrados (o artigo); "007 - Operação Skyfall" difere em <b>11</b>. O
+    /// corte de 4 cobre os artigos das duas línguas — the, a, o, os, as, um,
+    /// uma, la, le, el, los — e nada além deles.
     /// </summary>
+    private const int MaxDiferencaDeArtigo = 4;
+
     private static bool Igual(string? a, string? b)
     {
         var x = Dobrar(a);
         var y = Dobrar(b);
         if (x.Length == 0 || y.Length == 0) return false;
+        if (x == y) return true;
+        if (Math.Abs(x.Length - y.Length) > MaxDiferencaDeArtigo) return false;
         return x.Contains(y, StringComparison.Ordinal) || y.Contains(x, StringComparison.Ordinal);
     }
 

@@ -1,6 +1,6 @@
 {
   "head" : {
-    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "anoMin", "duracao", "direcao", "generos", "paises" ]
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "anoMin", "duracao", "direcao", "generos", "paises" ]
   },
   "results" : {
     "bindings" : [ {
@@ -31,6 +31,15 @@
         "type" : "literal",
         "value" : "Jumanji: The Next Level"
       },
+      "imdbId" : {
+        "type" : "literal",
+        "value" : "tt7975244"
+      },
+      "filme" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "1"
+      },
       "anoMin" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
         "type" : "literal",
@@ -47,7 +56,7 @@
       },
       "generos" : {
         "type" : "literal",
-        "value" : "filme de aventura|comédia de ação|comédia cinematográfica"
+        "value" : "filme de aventura|comédia cinematográfica|comédia de ação"
       },
       "paises" : {
         "type" : "literal",
