@@ -58,3 +58,30 @@ public static class WikidataId
     public static string Normalizar(string? s) =>
         Parece(s) ? $"Q{s!.Trim()[1..]}" : string.Empty;
 }
+
+/// <summary>
+/// A CHAVE DE UM FILME — num lugar só, e é por isso que ela existe.
+///
+/// ── O DEFEITO QUE ESTA CLASSE CONSERTA ────────────────────────────────────
+/// Havia dois lugares conferindo a forma da chave: o portão
+/// (<c>LookupShape</c>, que decide se vale perguntar) e o serviço
+/// (<c>LookupService.FilmeAsync</c>, que decide o que mandar ao gateway).
+/// Quando o `Q4941` virou segunda porta, o primeiro aprendeu e o segundo não —
+/// e o resultado foi o pior tipo de falha: a bancada abria a consulta, o
+/// serviço a descartava caladamente antes de sair, e a tela mostrava só a
+/// leitura de coordenada. Nada quebrou; a resposta simplesmente não veio.
+///
+/// Duas cópias de uma regra divergem, e a que sobrevive é a errada. Agora é
+/// uma função, e quem precisar da forma chama esta.
+/// </summary>
+public static class ChaveDeFilme
+{
+    /// <summary>`tt1074638` ou `Q4941`, na forma canônica. Vazio se não for nem um.</summary>
+    public static string Normalizar(string? s)
+    {
+        var tt = ImdbId.Normalizar(s);
+        return tt.Length > 0 ? tt : WikidataId.Normalizar(s);
+    }
+
+    public static bool Parece(string? s) => Normalizar(s).Length > 0;
+}

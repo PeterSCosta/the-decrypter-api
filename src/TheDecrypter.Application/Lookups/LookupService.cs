@@ -82,9 +82,12 @@ public partial class LookupService(
     /// comportamento certo: um ID ausente hoje pode entrar no Wikidata amanhã,
     /// e memorizar a ausência por uma semana congelaria a resposta errada.
     /// </summary>
-    public Task<FilmeInfo?> FilmeAsync(string imdbId, CancellationToken ct = default)
+    public Task<FilmeInfo?> FilmeAsync(string chave, CancellationToken ct = default)
     {
-        var id = ImdbId.Normalizar(imdbId);
+        // `ChaveDeFilme` e não `ImdbId`: as duas portas passam por aqui. Esta
+        // linha já esteve errada — normalizava só a forma `tt…`, e todo `Q4941`
+        // morria aqui, calado, antes de chegar ao gateway.
+        var id = ChaveDeFilme.Normalizar(chave);
         return id.Length == 0
             ? Task.FromResult<FilmeInfo?>(null)
             : CacheFirst($"filme:{id}", () => wikidata.FilmePorImdbAsync(id, ct), Week);

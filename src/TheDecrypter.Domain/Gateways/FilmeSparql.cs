@@ -103,6 +103,7 @@ public static class FilmeSparql
         var qid = WikidataId.Normalizar(chave);
         if (qid.Length > 0) return Modelo.Replace("@ANCORA", $"BIND(wd:{qid} AS ?obra)");
 
+        // Nem uma nem outra: consulta nenhuma. Ver `ChaveDeFilme`.
         return string.Empty;
     }
 

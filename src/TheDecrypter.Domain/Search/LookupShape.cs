@@ -76,7 +76,7 @@ public static class LookupShape
         // do ramo de nome, e o texto não é só dígito).
         // Duas portas para a mesma coisa: o código da IMDb (`tt1074638`) e o do
         // Wikidata (`Q4941`). Ver `WikidataId` para por que a segunda existe.
-        if (ImdbId.Parece(texto) || WikidataId.Parece(texto)) return Consultas.Filme;
+        if (ChaveDeFilme.Parece(texto)) return Consultas.Filme;
         var digitos = new string([.. texto.Where(char.IsDigit)]);
 
         /*
