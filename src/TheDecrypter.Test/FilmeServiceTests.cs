@@ -38,9 +38,17 @@ public class FilmeServiceTests
         public Task<FilmeInfo?> FilmePorImdbAsync(string chave, CancellationToken ct = default)
         {
             Recebeu.Add(chave);
-            return Task.FromResult<FilmeInfo?>(
-                new FilmeInfo(chave, null, null, "Skyfall", "Skyfall", 2012, 143, null, null, null, "Q4941", "Wikidata"));
+            return Task.FromResult<FilmeInfo?>(Ficha(chave));
         }
+
+        public Task<ResolucaoWikidata> ResolverAsync(string chave, CancellationToken ct = default)
+        {
+            Recebeu.Add(chave);
+            return Task.FromResult(new ResolucaoWikidata(Ficha(chave), null));
+        }
+
+        private static FilmeInfo Ficha(string chave) =>
+            new(chave, null, null, "Skyfall", "Skyfall", 2012, 143, null, null, null, "Q4941", "Wikidata");
     }
 
     private static (LookupService svc, WikidataQueAnota gw) Montar()
@@ -59,8 +67,8 @@ public class FilmeServiceTests
     public async Task A_chave_atravessa_ate_o_gateway(string entrada, string esperado)
     {
         var (svc, gw) = Montar();
-        var r = await svc.FilmeAsync(entrada);
-        Assert.NotNull(r);
+        var r = await svc.WikidataAsync(entrada);
+        Assert.NotNull(r.Filme);
         Assert.Equal([esperado], gw.Recebeu);
     }
 
@@ -74,7 +82,7 @@ public class FilmeServiceTests
     public async Task O_que_nao_e_chave_nao_chega_ao_gateway(string entrada)
     {
         var (svc, gw) = Montar();
-        Assert.Null(await svc.FilmeAsync(entrada));
+        Assert.Null((await svc.WikidataAsync(entrada)).Filme);
         Assert.Empty(gw.Recebeu);
     }
 
@@ -92,7 +100,7 @@ public class FilmeServiceTests
     public async Task O_portao_e_o_servico_concordam_sempre(string entrada)
     {
         var (svc, gw) = Montar();
-        await svc.FilmeAsync(entrada);
+        await svc.WikidataAsync(entrada);
         var portaoAbriu = LookupShape.De(entrada).HasFlag(Consultas.Filme);
         var servicoPerguntou = gw.Recebeu.Count > 0;
         Assert.Equal(portaoAbriu, servicoPerguntou);
@@ -102,8 +110,8 @@ public class FilmeServiceTests
     public async Task A_segunda_chamada_vem_do_cache_e_nao_gasta_requisicao()
     {
         var (svc, gw) = Montar();
-        await svc.FilmeAsync("Q4941");
-        await svc.FilmeAsync("q4941");
+        await svc.WikidataAsync("Q4941");
+        await svc.WikidataAsync("q4941");
         Assert.Single(gw.Recebeu);
     }
 }

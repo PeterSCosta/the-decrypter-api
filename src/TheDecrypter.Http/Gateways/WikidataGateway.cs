@@ -12,10 +12,14 @@ namespace TheDecrypter.Http.Gateways;
 /// </summary>
 public class WikidataGateway(HttpClient http) : IWikidataGateway
 {
-    public async Task<FilmeInfo?> FilmePorImdbAsync(string imdbId, CancellationToken ct = default)
+    public async Task<FilmeInfo?> FilmePorImdbAsync(string imdbId, CancellationToken ct = default) =>
+        (await ResolverAsync(imdbId, ct)).Filme;
+
+    public async Task<ResolucaoWikidata> ResolverAsync(string chave, CancellationToken ct = default)
     {
-        var sparql = FilmeSparql.Consulta(imdbId);
-        if (sparql.Length == 0) return null;
+        var vazio = new ResolucaoWikidata(null, null);
+        var sparql = FilmeSparql.Consulta(chave);
+        if (sparql.Length == 0) return vazio;
 
         var url = "sparql?format=json&query=" + Uri.EscapeDataString(sparql);
         using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -25,6 +29,9 @@ public class WikidataGateway(HttpClient http) : IWikidataGateway
         resp.EnsureSuccessStatusCode();
 
         var corpo = await resp.Content.ReadAsStringAsync(ct);
-        return FilmeSparql.Ler(imdbId, corpo);
+        // Uma requisição, duas leituras: a consulta já traz os campos de filme e
+        // os de item, e separá-las dobraria o custo de um endpoint público para
+        // responder a mesma pergunta.
+        return new ResolucaoWikidata(FilmeSparql.Ler(chave, corpo), FilmeSparql.LerItem(chave, corpo));
     }
 }

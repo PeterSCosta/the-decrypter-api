@@ -18,7 +18,7 @@ public interface ILookupService
     Task<W3wInfo?> W3wAsync(string words, CancellationToken ct = default);
     Task<GeocodeInfo?> GeocodeAsync(string query, CancellationToken ct = default);
     Task<CnaeInfo?> CnaeAsync(string codigo, CancellationToken ct = default);
-    Task<FilmeInfo?> FilmeAsync(string imdbId, CancellationToken ct = default);
+    Task<ResolucaoWikidata> WikidataAsync(string chave, CancellationToken ct = default);
 }
 
 /// <summary>Consultas externas cache-first (Redis → provedor → cacheia).</summary>
@@ -82,16 +82,30 @@ public partial class LookupService(
     /// comportamento certo: um ID ausente hoje pode entrar no Wikidata amanhã,
     /// e memorizar a ausência por uma semana congelaria a resposta errada.
     /// </summary>
-    public Task<FilmeInfo?> FilmeAsync(string chave, CancellationToken ct = default)
+    /// <summary>
+    /// Resolve `tt1074638` ou `Q4941` e devolve as DUAS leituras — filme e item.
+    ///
+    /// `ChaveDeFilme` e não `ImdbId`: as duas portas passam por aqui. Esta linha
+    /// já esteve errada — normalizava só a forma `tt…`, e todo `Q4941` morria
+    /// aqui, calado, antes de chegar ao gateway. Há teste amarrando o portão e
+    /// o serviço ao mesmo julgamento, justamente por isso.
+    /// </summary>
+    public async Task<ResolucaoWikidata> WikidataAsync(string chave, CancellationToken ct = default)
     {
-        // `ChaveDeFilme` e não `ImdbId`: as duas portas passam por aqui. Esta
-        // linha já esteve errada — normalizava só a forma `tt…`, e todo `Q4941`
-        // morria aqui, calado, antes de chegar ao gateway.
         var id = ChaveDeFilme.Normalizar(chave);
-        return id.Length == 0
-            ? Task.FromResult<FilmeInfo?>(null)
-            : CacheFirst($"filme:{id}", () => wikidata.FilmePorImdbAsync(id, ct), Week);
+        if (id.Length == 0) return new ResolucaoWikidata(null, null);
+        var r = await CacheFirst($"wd:{id}", () => Envolver(id, ct), Week);
+        return r?.Valor ?? new ResolucaoWikidata(null, null);
     }
+
+    /// <summary>
+    /// O `CacheFirst` só guarda referência não-nula, e uma resolução vazia É um
+    /// resultado válido — sem o envelope ela seria reconsultada a cada tecla.
+    /// </summary>
+    private sealed record Envelope(ResolucaoWikidata Valor);
+
+    private async Task<Envelope?> Envolver(string id, CancellationToken ct) =>
+        new(await wikidata.ResolverAsync(id, ct));
 
     public Task<RegistroBrInfo?> RegistroBrAsync(string domain, CancellationToken ct = default)
     {

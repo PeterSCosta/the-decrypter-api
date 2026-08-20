@@ -1,6 +1,6 @@
 {
   "head" : {
-    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "anoMin", "duracao", "direcao", "generos", "paises" ]
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "rotuloBr", "rotuloPt", "rotuloEn", "rotuloMul", "descricaoBr", "descricaoPt", "descricaoEn", "tipos", "coordenada", "anoMin", "duracao", "direcao", "generos", "paises" ]
   },
   "results" : {
     "bindings" : [ {
@@ -44,6 +44,35 @@
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
         "type" : "literal",
         "value" : "1"
+      },
+      "rotuloBr" : {
+        "xml:lang" : "pt-br",
+        "type" : "literal",
+        "value" : "Skyfall"
+      },
+      "rotuloPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "Skyfall"
+      },
+      "rotuloEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Skyfall"
+      },
+      "descricaoPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "filme de 2012 dirigido por Sam Mendes"
+      },
+      "descricaoEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "2012 film by Sam Mendes"
+      },
+      "tipos" : {
+        "type" : "literal",
+        "value" : "filme"
       },
       "anoMin" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",

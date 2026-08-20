@@ -51,6 +51,12 @@ public static class FilmeSparql
                (SAMPLE(?ptL)   AS ?ptRotulo)
                (SAMPLE(?enL) AS ?ingles) (SAMPLE(?origL) AS ?original)
                (SAMPLE(?imdb) AS ?imdbId) (SAMPLE(?ehFilme) AS ?filme)
+               (SAMPLE(?rotBr) AS ?rotuloBr) (SAMPLE(?rotPt) AS ?rotuloPt)
+               (SAMPLE(?rotEn) AS ?rotuloEn) (SAMPLE(?rotMul) AS ?rotuloMul)
+               (SAMPLE(?descBr) AS ?descricaoBr) (SAMPLE(?descPt) AS ?descricaoPt)
+               (SAMPLE(?descEn) AS ?descricaoEn)
+               (GROUP_CONCAT(DISTINCT ?tipoL; separator="|") AS ?tipos)
+               (SAMPLE(?coord) AS ?coordenada)
                (MIN(?ano) AS ?anoMin) (SAMPLE(?minutos) AS ?duracao)
                (GROUP_CONCAT(DISTINCT ?dirL;  separator="|") AS ?direcao)
                (GROUP_CONCAT(DISTINCT ?genL;  separator="|") AS ?generos)
@@ -59,6 +65,18 @@ public static class FilmeSparql
           @ANCORA
           OPTIONAL { ?obra wdt:P345 ?imdb }
           OPTIONAL { ?obra wdt:P31/wdt:P279* wd:Q11424 . BIND(1 AS ?ehFilme) }
+          OPTIONAL { ?obra rdfs:label ?rotBr  . FILTER(LANG(?rotBr)  = "pt-br") }
+          OPTIONAL { ?obra rdfs:label ?rotPt  . FILTER(LANG(?rotPt)  = "pt")    }
+          OPTIONAL { ?obra rdfs:label ?rotEn  . FILTER(LANG(?rotEn)  = "en")    }
+          # `mul` não é enfeite: o rótulo de Carlos Drummond de Andrade vive só
+          # nele, e uma consulta que fixa pt/en devolve zero — falso-negativo
+          # silencioso, que é o defeito que esta casa proíbe por escrito.
+          OPTIONAL { ?obra rdfs:label ?rotMul . FILTER(LANG(?rotMul) = "mul")   }
+          OPTIONAL { ?obra schema:description ?descBr . FILTER(LANG(?descBr) = "pt-br") }
+          OPTIONAL { ?obra schema:description ?descPt . FILTER(LANG(?descPt) = "pt")    }
+          OPTIONAL { ?obra schema:description ?descEn . FILTER(LANG(?descEn) = "en")    }
+          OPTIONAL { ?obra wdt:P31 ?tipo . ?tipo rdfs:label ?tipoL . FILTER(LANG(?tipoL) = "pt") }
+          OPTIONAL { ?obra wdt:P625 ?coord }
           OPTIONAL { ?obra skos:altLabel ?ptbrA . FILTER(LANG(?ptbrA) = "pt-br") }
           OPTIONAL { ?obra rdfs:label    ?ptbrL . FILTER(LANG(?ptbrL) = "pt-br") }
           OPTIONAL { ?obra skos:altLabel ?ptA   . FILTER(LANG(?ptA)   = "pt")    }
@@ -264,4 +282,74 @@ public static class FilmeSparql
     private static int? Minutos(string? bruto) =>
         double.TryParse(bruto, NumberStyles.Float, CultureInfo.InvariantCulture, out var d)
         && d is > 0 and <= 6000 ? (int)Math.Round(d) : null;
+
+    /// <summary>
+    /// A MESMA resposta, lida como item qualquer.
+    ///
+    /// O rótulo tem escada de língua com `mul` no meio, e não no fim: o rótulo
+    /// de Douglas Adams vive só nele, e uma escada que parasse em `en` daria
+    /// zero para um item que existe. A língua escolhida viaja junto, para a
+    /// tela poder dizer de onde o nome veio em vez de fingir que é português.
+    /// </summary>
+    public static ItemWikidata? LerItem(string chave, string json)
+    {
+        var qid = WikidataId.Normalizar(chave);
+        if (qid.Length == 0 || string.IsNullOrWhiteSpace(json)) return null;
+
+        JsonDocument doc;
+        try { doc = JsonDocument.Parse(json); }
+        catch (JsonException) { return null; }
+
+        using (doc)
+        {
+            if (!doc.RootElement.TryGetProperty("results", out var res)
+                || !res.TryGetProperty("bindings", out var b)
+                || b.ValueKind != JsonValueKind.Array || b.GetArrayLength() == 0)
+                return null;
+
+            var r = b[0];
+            var (rotulo, lingua) = Escada(r, "rotulo");
+            var (descricao, _) = Escada(r, "descricao");
+
+            // Um item sem rótulo E sem descrição não é item: é um QID que o
+            // Wikidata não conhece, ou um redirecionamento. Devolver uma casca
+            // com o número dentro seria afirmar existência sem evidência.
+            if (rotulo is null && descricao is null) return null;
+
+            var (lat, lng) = Ponto(V(r, "coordenada"));
+            return new ItemWikidata(
+                qid, rotulo, lingua, descricao,
+                Lista(r, "tipos"),
+                V(r, "imdbId"),
+                lat, lng,
+                V(r, "filme") is not null);
+        }
+    }
+
+    /// <summary>pt-br → pt → en → mul. Devolve o valor e a língua que o deu.</summary>
+    private static (string?, string?) Escada(JsonElement r, string prefixo)
+    {
+        foreach (var (sufixo, lingua) in new[] { ("Br", "pt-BR"), ("Pt", "pt"), ("En", "en"), ("Mul", "mul") })
+        {
+            if (V(r, prefixo + sufixo) is { } v) return (v, lingua);
+        }
+        return (null, null);
+    }
+
+    /// <summary>
+    /// `Point(-53.0 -14.0)` → lat/lng.
+    ///
+    /// A ordem do WKT é LONGITUDE primeiro, e trocá-la põe o Brasil no oceano
+    /// Índico — é o erro clássico de quem lê ponto geográfico sem conferir a
+    /// convenção do formato.
+    /// </summary>
+    private static (double?, double?) Ponto(string? wkt)
+    {
+        if (wkt is null || !wkt.StartsWith("Point(", StringComparison.OrdinalIgnoreCase)) return (null, null);
+        var partes = wkt[6..].TrimEnd(')').Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (partes.Length != 2) return (null, null);
+        if (!double.TryParse(partes[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var lon)) return (null, null);
+        if (!double.TryParse(partes[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var lat)) return (null, null);
+        return (lat, lon);
+    }
 }

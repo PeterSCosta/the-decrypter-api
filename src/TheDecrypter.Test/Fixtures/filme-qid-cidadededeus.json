@@ -1,6 +1,6 @@
 {
   "head" : {
-    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "anoMin", "duracao", "direcao", "generos", "paises" ]
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "rotuloBr", "rotuloPt", "rotuloEn", "rotuloMul", "descricaoBr", "descricaoPt", "descricaoEn", "tipos", "coordenada", "anoMin", "duracao", "direcao", "generos", "paises" ]
   },
   "results" : {
     "bindings" : [ {
@@ -45,6 +45,40 @@
         "type" : "literal",
         "value" : "1"
       },
+      "rotuloBr" : {
+        "xml:lang" : "pt-br",
+        "type" : "literal",
+        "value" : "Cidade de Deus"
+      },
+      "rotuloPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "Cidade de Deus"
+      },
+      "rotuloEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "City of God"
+      },
+      "descricaoBr" : {
+        "xml:lang" : "pt-br",
+        "type" : "literal",
+        "value" : "filme de Fernando Meirelles e Kátia Lund (2002)"
+      },
+      "descricaoPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "filme brasileiro de 2002"
+      },
+      "descricaoEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "2002 film directed by Fernando Meirelles and Kátia Lund"
+      },
+      "tipos" : {
+        "type" : "literal",
+        "value" : "filme"
+      },
       "anoMin" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
         "type" : "literal",
@@ -65,7 +99,7 @@
       },
       "paises" : {
         "type" : "literal",
-        "value" : "França|Brasil"
+        "value" : "Brasil|França"
       }
     } ]
   }

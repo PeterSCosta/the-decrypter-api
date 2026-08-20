@@ -6,7 +6,7 @@
     "bindings" : [ {
       "obra" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q42"
+        "value" : "http://www.wikidata.org/entity/Q999999999"
       },
       "brApelidos" : {
         "type" : "literal",
@@ -16,28 +16,9 @@
         "type" : "literal",
         "value" : ""
       },
-      "imdbId" : {
-        "type" : "literal",
-        "value" : "nm0010930"
-      },
-      "rotuloMul" : {
-        "xml:lang" : "mul",
-        "type" : "literal",
-        "value" : "Douglas Adams"
-      },
-      "descricaoPt" : {
-        "xml:lang" : "pt",
-        "type" : "literal",
-        "value" : "escritor e comediante britânico (1952-2001)"
-      },
-      "descricaoEn" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "British science fiction writer and humorist (1952–2001)"
-      },
       "tipos" : {
         "type" : "literal",
-        "value" : "humano"
+        "value" : ""
       },
       "direcao" : {
         "type" : "literal",
@@ -45,7 +26,7 @@
       },
       "generos" : {
         "type" : "literal",
-        "value" : "ficção científica|comédia|sátira"
+        "value" : ""
       },
       "paises" : {
         "type" : "literal",

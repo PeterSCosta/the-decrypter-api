@@ -1,6 +1,6 @@
 {
   "head" : {
-    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "anoMin", "duracao", "direcao", "generos", "paises" ]
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "rotuloBr", "rotuloPt", "rotuloEn", "rotuloMul", "descricaoBr", "descricaoPt", "descricaoEn", "tipos", "coordenada", "anoMin", "duracao", "direcao", "generos", "paises" ]
   },
   "results" : {
     "bindings" : [ {
@@ -45,6 +45,45 @@
         "type" : "literal",
         "value" : "1"
       },
+      "rotuloBr" : {
+        "xml:lang" : "pt-br",
+        "type" : "literal",
+        "value" : "Oppenheimer"
+      },
+      "rotuloPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "Oppenheimer"
+      },
+      "rotuloEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Oppenheimer"
+      },
+      "rotuloMul" : {
+        "xml:lang" : "mul",
+        "type" : "literal",
+        "value" : "Oppenheimer"
+      },
+      "descricaoBr" : {
+        "xml:lang" : "pt-br",
+        "type" : "literal",
+        "value" : "filme de 2023 dirigido por Christopher Nolan"
+      },
+      "descricaoPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "filme de 2023 dirigido por Christopher Nolan"
+      },
+      "descricaoEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "2023 film directed by Christopher Nolan"
+      },
+      "tipos" : {
+        "type" : "literal",
+        "value" : "filme"
+      },
       "anoMin" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
         "type" : "literal",
@@ -61,7 +100,7 @@
       },
       "generos" : {
         "type" : "literal",
-        "value" : "filme de suspense|filme épico|drama|cinebiografia"
+        "value" : "filme épico|filme de suspense|cinebiografia|drama"
       },
       "paises" : {
         "type" : "literal",

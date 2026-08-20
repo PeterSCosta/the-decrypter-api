@@ -106,7 +106,11 @@ public class LookupController(
             // Se o Wikidata cair ou demorar, a exceção sobe e o cliente mostra
             // "não consegui perguntar" — que é diferente de "não encontrei", e
             // é a distinção que o card inteiro depende.
-            r.Filme = await externos.FilmeAsync(termo, ct);
+            // Uma requisição, duas leituras. `Q4941` é filme E item; `Q2` é só
+            // item; `tt1074638` é só filme. Quem decide o que mostrar é a tela.
+            var wd = await externos.WikidataAsync(termo, ct);
+            r.Filme = wd.Filme;
+            r.Item = wd.Item;
         }
 
         if (quais.HasFlag(Consultas.CepCuringa))
@@ -144,4 +148,11 @@ public class LookupResposta(string q)
     public object? Lote { get; set; }
     public object? Lotes { get; set; }
     public object? Filme { get; set; }
+
+    /// <summary>
+    /// O item do Wikidata quando a entrada é um `Q…` — rótulo, o que a coisa é,
+    /// e a coordenada quando ela tem uma. Vem junto do `Filme` quando o item
+    /// também é um filme.
+    /// </summary>
+    public object? Item { get; set; }
 }

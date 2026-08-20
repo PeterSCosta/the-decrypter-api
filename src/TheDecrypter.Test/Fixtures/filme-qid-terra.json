@@ -6,100 +6,81 @@
     "bindings" : [ {
       "obra" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q172241"
+        "value" : "http://www.wikidata.org/entity/Q2"
       },
       "brApelidos" : {
         "type" : "literal",
-        "value" : "Um Sonho de Liberdade"
+        "value" : "Pachamama"
       },
       "brRotulo" : {
         "xml:lang" : "pt-br",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
+        "value" : "Terra"
       },
       "ptApelidos" : {
         "type" : "literal",
-        "value" : "Shawshank Redemption|Os Condenados de Shawshank"
+        "value" : "Planeta Terra|Planeta Azul|Mãe-terra|Globo Terrestre|Globo|Mundo"
       },
       "ptRotulo" : {
         "xml:lang" : "pt",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
+        "value" : "Terra"
       },
       "ingles" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
-      },
-      "original" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "The Shawshank Redemption"
-      },
-      "imdbId" : {
-        "type" : "literal",
-        "value" : "tt0111161"
-      },
-      "filme" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
-        "type" : "literal",
-        "value" : "1"
+        "value" : "Earth"
       },
       "rotuloBr" : {
         "xml:lang" : "pt-br",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
+        "value" : "Terra"
       },
       "rotuloPt" : {
         "xml:lang" : "pt",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
+        "value" : "Terra"
       },
       "rotuloEn" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
+        "value" : "Earth"
+      },
+      "rotuloMul" : {
+        "xml:lang" : "mul",
+        "type" : "literal",
+        "value" : "Sol 3"
       },
       "descricaoBr" : {
         "xml:lang" : "pt-br",
         "type" : "literal",
-        "value" : "filme de 1994 dirigido por Frank Darabont"
+        "value" : "terceiro planeta a partir do Sol no Sistema Solar"
       },
       "descricaoPt" : {
         "xml:lang" : "pt",
         "type" : "literal",
-        "value" : "filme de 1994 dirigido por Frank Darabont"
+        "value" : "terceiro planeta a partir do Sol no Sistema Solar"
       },
       "descricaoEn" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "1994 film directed by Frank Darabont"
+        "value" : "third planet from the Sun in the Solar System"
       },
       "tipos" : {
         "type" : "literal",
-        "value" : "filme"
-      },
-      "anoMin" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
-        "type" : "literal",
-        "value" : "1994"
-      },
-      "duracao" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
-        "type" : "literal",
-        "value" : "142"
+        "value" : "planetas interiores"
       },
       "direcao" : {
         "type" : "literal",
-        "value" : "Frank Darabont"
+        "value" : ""
       },
       "generos" : {
         "type" : "literal",
-        "value" : "Filme de amigos|Filme carcerário|filme sobre crimes|drama"
+        "value" : ""
       },
       "paises" : {
         "type" : "literal",
-        "value" : "Estados Unidos"
+        "value" : ""
       }
     } ]
   }

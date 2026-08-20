@@ -6,100 +6,81 @@
     "bindings" : [ {
       "obra" : {
         "type" : "uri",
-        "value" : "http://www.wikidata.org/entity/Q172241"
+        "value" : "http://www.wikidata.org/entity/Q155"
       },
       "brApelidos" : {
         "type" : "literal",
-        "value" : "Um Sonho de Liberdade"
+        "value" : "República Federativa do Brasil|Pindorama"
       },
       "brRotulo" : {
         "xml:lang" : "pt-br",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
+        "value" : "Brasil"
       },
       "ptApelidos" : {
         "type" : "literal",
-        "value" : "Shawshank Redemption|Os Condenados de Shawshank"
+        "value" : "República Federativa do Brasil|Pindorama"
       },
       "ptRotulo" : {
         "xml:lang" : "pt",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
+        "value" : "Brasil"
       },
       "ingles" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
-      },
-      "original" : {
-        "xml:lang" : "en",
-        "type" : "literal",
-        "value" : "The Shawshank Redemption"
-      },
-      "imdbId" : {
-        "type" : "literal",
-        "value" : "tt0111161"
-      },
-      "filme" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
-        "type" : "literal",
-        "value" : "1"
+        "value" : "Brazil"
       },
       "rotuloBr" : {
         "xml:lang" : "pt-br",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
+        "value" : "Brasil"
       },
       "rotuloPt" : {
         "xml:lang" : "pt",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
+        "value" : "Brasil"
       },
       "rotuloEn" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "The Shawshank Redemption"
+        "value" : "Brazil"
       },
       "descricaoBr" : {
         "xml:lang" : "pt-br",
         "type" : "literal",
-        "value" : "filme de 1994 dirigido por Frank Darabont"
+        "value" : "país da América do Sul"
       },
       "descricaoPt" : {
         "xml:lang" : "pt",
         "type" : "literal",
-        "value" : "filme de 1994 dirigido por Frank Darabont"
+        "value" : "país na América do Sul"
       },
       "descricaoEn" : {
         "xml:lang" : "en",
         "type" : "literal",
-        "value" : "1994 film directed by Frank Darabont"
+        "value" : "country in South America"
       },
       "tipos" : {
         "type" : "literal",
-        "value" : "filme"
+        "value" : "Estado secular|país|estado soberano"
       },
-      "anoMin" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+      "coordenada" : {
+        "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
         "type" : "literal",
-        "value" : "1994"
-      },
-      "duracao" : {
-        "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
-        "type" : "literal",
-        "value" : "142"
+        "value" : "Point(-53.0 -14.0)"
       },
       "direcao" : {
         "type" : "literal",
-        "value" : "Frank Darabont"
+        "value" : ""
       },
       "generos" : {
         "type" : "literal",
-        "value" : "Filme de amigos|Filme carcerário|filme sobre crimes|drama"
+        "value" : ""
       },
       "paises" : {
         "type" : "literal",
-        "value" : "Estados Unidos"
+        "value" : ""
       }
     } ]
   }

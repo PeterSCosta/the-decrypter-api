@@ -1,6 +1,6 @@
 {
   "head" : {
-    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "anoMin", "duracao", "direcao", "generos", "paises" ]
+    "vars" : [ "obra", "brApelidos", "brRotulo", "ptApelidos", "ptRotulo", "ingles", "original", "imdbId", "filme", "rotuloBr", "rotuloPt", "rotuloEn", "rotuloMul", "descricaoBr", "descricaoPt", "descricaoEn", "tipos", "coordenada", "anoMin", "duracao", "direcao", "generos", "paises" ]
   },
   "results" : {
     "bindings" : [ {
@@ -39,6 +39,30 @@
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
         "type" : "literal",
         "value" : "1"
+      },
+      "rotuloPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "Jumanji: The Next Level"
+      },
+      "rotuloEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Jumanji: The Next Level"
+      },
+      "descricaoPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "filme de 2019 dirigido por Jake Kasdan"
+      },
+      "descricaoEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "2019 film directed by Jake Kasdan"
+      },
+      "tipos" : {
+        "type" : "literal",
+        "value" : "filme"
       },
       "anoMin" : {
         "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
