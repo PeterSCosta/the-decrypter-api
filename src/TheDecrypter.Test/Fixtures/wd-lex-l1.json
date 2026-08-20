@@ -1,0 +1,28 @@
+{
+  "head" : {
+    "vars" : [ "lema", "linguaL", "catL", "glosas" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "lema" : {
+        "xml:lang" : "sux-latn",
+        "type" : "literal",
+        "value" : "ama"
+      },
+      "linguaL" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "língua suméria"
+      },
+      "catL" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "nome"
+      },
+      "glosas" : {
+        "type" : "literal",
+        "value" : "mãe · mother"
+      }
+    } ]
+  }
+}

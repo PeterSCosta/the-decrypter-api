@@ -1,0 +1,8 @@
+{
+  "head" : {
+    "vars" : [ "rotPt", "rotEn", "descPt", "descEn" ]
+  },
+  "results" : {
+    "bindings" : [ { } ]
+  }
+}

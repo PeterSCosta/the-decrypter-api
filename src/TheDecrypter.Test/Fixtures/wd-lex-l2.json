@@ -1,0 +1,28 @@
+{
+  "head" : {
+    "vars" : [ "lema", "linguaL", "catL", "glosas" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "lema" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "first"
+      },
+      "linguaL" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "inglês"
+      },
+      "catL" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "nome"
+      },
+      "glosas" : {
+        "type" : "literal",
+        "value" : "first day of a month · Element in an ordered list which comes before all others according to the ordering"
+      }
+    } ]
+  }
+}

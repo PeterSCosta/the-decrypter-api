@@ -18,7 +18,13 @@ public class WikidataGateway(HttpClient http) : IWikidataGateway
     public async Task<ResolucaoWikidata> ResolverAsync(string chave, CancellationToken ct = default)
     {
         var vazio = new ResolucaoWikidata(null, null);
-        var sparql = FilmeSparql.Consulta(chave);
+
+        // Duas consultas possíveis, e a espécie do código decide qual. `Q…` e
+        // `tt…` vão pela do filme, que também responde "é filme?"; `P…` e `L…`
+        // vão pela própria, porque uma propriedade e um lexema vivem num
+        // vocabulário RDF diferente — lexema nem rótulo tem, tem LEMA.
+        var doItem = WikidataSparql.Consulta(chave);
+        var sparql = doItem.Length > 0 ? doItem : FilmeSparql.Consulta(chave);
         if (sparql.Length == 0) return vazio;
 
         var url = "sparql?format=json&query=" + Uri.EscapeDataString(sparql);
@@ -32,6 +38,8 @@ public class WikidataGateway(HttpClient http) : IWikidataGateway
         // Uma requisição, duas leituras: a consulta já traz os campos de filme e
         // os de item, e separá-las dobraria o custo de um endpoint público para
         // responder a mesma pergunta.
-        return new ResolucaoWikidata(FilmeSparql.Ler(chave, corpo), FilmeSparql.LerItem(chave, corpo));
+        return doItem.Length > 0
+            ? new ResolucaoWikidata(null, WikidataSparql.Ler(chave, corpo))
+            : new ResolucaoWikidata(FilmeSparql.Ler(chave, corpo), FilmeSparql.LerItem(chave, corpo));
     }
 }

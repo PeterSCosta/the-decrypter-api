@@ -1,0 +1,29 @@
+{
+  "head" : {
+    "vars" : [ "rotPt", "rotEn", "descPt", "descEn" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "rotPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "identificador IMDb"
+      },
+      "rotEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "IMDb ID"
+      },
+      "descPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "identificador do IMDb (com o prefixo 'tt', 'nm', 'co', 'ev', 'ch' ou 'ni')"
+      },
+      "descEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "identifier for the IMDb (with prefix 'tt', 'nm', 'co', 'ev', 'ch' or 'ni')"
+      }
+    } ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "head" : {
+    "vars" : [ "rotPt", "rotEn", "descPt", "descEn" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "rotPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "coordenadas geográficas"
+      },
+      "rotEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "coordinate location"
+      },
+      "descPt" : {
+        "xml:lang" : "pt",
+        "type" : "literal",
+        "value" : "coordenadas geográficas da entidade"
+      },
+      "descEn" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "geocoordinates of the subject. For Earth, please note that only the WGS84 geodetic datum is currently supported"
+      }
+    } ]
+  }
+}

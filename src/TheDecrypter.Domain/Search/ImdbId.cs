@@ -76,12 +76,54 @@ public static class WikidataId
 /// </summary>
 public static class ChaveDeFilme
 {
-    /// <summary>`tt1074638` ou `Q4941`, na forma canônica. Vazio se não for nem um.</summary>
+    /// <summary>`tt1074638`, `Q4941`, `P345` ou `L1`, na forma canônica.</summary>
     public static string Normalizar(string? s)
     {
         var tt = ImdbId.Normalizar(s);
-        return tt.Length > 0 ? tt : WikidataId.Normalizar(s);
+        return tt.Length > 0 ? tt : CodigoWikidata.Normalizar(s);
     }
 
     public static bool Parece(string? s) => Normalizar(s).Length > 0;
+}
+
+/// <summary>As três espécies de código que o Wikidata usa.</summary>
+public enum EspecieWikidata
+{
+    /// <summary>`Q…` — uma COISA: filme, pessoa, planeta, cidade.</summary>
+    Item,
+    /// <summary>`P…` — o CAMPO em si: `P345` é "identificador IMDb".</summary>
+    Propriedade,
+    /// <summary>`L…` — uma PALAVRA, com língua, classe gramatical e sentidos.</summary>
+    Lexema,
+}
+
+/// <summary>
+/// A forma de um código do Wikidata, nas três espécies.
+///
+/// Nem tudo lá começa com `Q`, e a diferença importa: `Q2` é a Terra, `P345` é
+/// o campo "identificador IMDb" e `L1` é a palavra "ama". São perguntas
+/// diferentes, respondidas por consultas diferentes — mas todas EXATAS, porque
+/// um código aponta para um registro e só um.
+/// </summary>
+public static class CodigoWikidata
+{
+    public static EspecieWikidata? Especie(string? s)
+    {
+        var t = (s ?? string.Empty).Trim();
+        if (t.Length is < 2 or > 12) return null;
+        // Sem zero à esquerda: `Q0` e `P01` não existem, e aceitá-los faria a
+        // bancada gastar requisição com forma que nunca resolve.
+        if (t[1] == '0' || !t[1..].All(char.IsAsciiDigit)) return null;
+        return char.ToUpperInvariant(t[0]) switch
+        {
+            'Q' => EspecieWikidata.Item,
+            'P' => EspecieWikidata.Propriedade,
+            'L' => EspecieWikidata.Lexema,
+            _ => null,
+        };
+    }
+
+    /// <summary>Forma canônica: prefixo maiúsculo. Vazio quando não é código.</summary>
+    public static string Normalizar(string? s) =>
+        Especie(s) is null ? string.Empty : $"{char.ToUpperInvariant(s!.Trim()[0])}{s.Trim()[1..]}";
 }

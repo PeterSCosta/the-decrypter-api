@@ -76,7 +76,10 @@ public static class LookupShape
         // do ramo de nome, e o texto não é só dígito).
         // Duas portas para a mesma coisa: o código da IMDb (`tt1074638`) e o do
         // Wikidata (`Q4941`). Ver `WikidataId` para por que a segunda existe.
-        if (ChaveDeFilme.Parece(texto)) return Consultas.Filme;
+        // `tt1074638`, `Q2`, `P345`, `L1` — quatro formas, uma porta. Todas são
+        // acerto EXATO: um código aponta para um registro e só um, o que é o
+        // oposto do problema de ambiguidade que fechou a busca por nome.
+        if (ImdbId.Parece(texto) || CodigoWikidata.Especie(texto) is not null) return Consultas.Filme;
         var digitos = new string([.. texto.Where(char.IsDigit)]);
 
         /*
